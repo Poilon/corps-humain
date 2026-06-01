@@ -221,8 +221,10 @@ const draco=new DRACOLoader(); draco.setDecoderPath('https://unpkg.com/three@0.1
 const loader=new GLTFLoader(); loader.setDRACOLoader(draco);
 
 function makeMat(L,color){
-  if(L.key==='skeletal') return new THREE.MeshPhysicalMaterial({color,roughness:0.62,metalness:0,sheen:0.25,sheenColor:new THREE.Color(0xffffff),envMapIntensity:0.75,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
-  return new THREE.MeshPhysicalMaterial({color,roughness:0.5,metalness:0,clearcoat:MOBILE?0:0.15,clearcoatRoughness:0.5,sheen:0.5,sheenColor:new THREE.Color(0xffd9c2),sheenRoughness:0.7,envMapIntensity:0.85,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
+  // DoubleSide : certains organes (digestif, respiratoire) ont des faces inversées
+  // -> indispensable pour le clic (raycast) ET un éclairage correct des 2 faces.
+  if(L.key==='skeletal') return new THREE.MeshPhysicalMaterial({color,roughness:0.62,metalness:0,sheen:0.25,sheenColor:new THREE.Color(0xffffff),envMapIntensity:0.75,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1,side:THREE.DoubleSide});
+  return new THREE.MeshPhysicalMaterial({color,roughness:0.5,metalness:0,clearcoat:MOBILE?0:0.15,clearcoatRoughness:0.5,sheen:0.5,sheenColor:new THREE.Color(0xffd9c2),sheenRoughness:0.7,envMapIntensity:0.85,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1,side:THREE.DoubleSide});
 }
 function fitRig(object){
   rig.scale.setScalar(1); rig.position.set(0,0,0); rig.updateMatrixWorld(true);
