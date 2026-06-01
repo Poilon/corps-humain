@@ -2,36 +2,51 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0f1d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Corps 3D" />
 <title>Corps humain 3D — Atlas musculaire interactif</title>
 <style>
   :root {
-    --panel: rgba(13, 19, 33, 0.82);
+    --panel: rgba(13, 19, 33, 0.86);
     --accent: #f59e42; --accent-2: #ff7a45;
     --text: #eef2f8; --muted: #9aa7bd; --border: rgba(148, 163, 184, 0.16);
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
   }
-  * { box-sizing: border-box; }
-  html, body { margin:0; padding:0; height:100%; overflow:hidden;
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none;
+    position:fixed; inset:0; -webkit-text-size-adjust:100%;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:#0a0f1d; color:var(--text); }
   #app { position:fixed; inset:0; }
-  canvas { display:block; }
+  canvas { display:block; touch-action:none; }
   #vignette { position:absolute; inset:0; pointer-events:none; z-index:5;
     box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.55); }
 
-  #title { position:absolute; top:18px; left:20px; z-index:10; pointer-events:none;
-    text-shadow:0 2px 14px rgba(0,0,0,0.7); }
+  #title { position:absolute; top:calc(var(--sat) + 16px); left:calc(var(--sal) + 18px); z-index:10;
+    pointer-events:none; text-shadow:0 2px 14px rgba(0,0,0,0.7); }
   #title h1 { margin:0; font-size:21px; font-weight:750; }
   #title p { margin:5px 0 0; font-size:12.5px; color:var(--muted); }
 
   .glass { background:var(--panel); border:1px solid var(--border); border-radius:16px;
-    backdrop-filter:blur(14px); box-shadow:0 14px 46px rgba(0,0,0,0.5); }
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 14px 46px rgba(0,0,0,0.5); }
 
-  #info { position:absolute; top:18px; right:18px; z-index:10; width:330px;
+  /* bouton ouverture liste (mobile) */
+  #list-toggle { display:none; position:absolute; top:calc(var(--sat) + 14px); right:calc(var(--sar) + 14px);
+    z-index:14; align-items:center; gap:7px; cursor:pointer; border:0; color:var(--text);
+    padding:10px 15px; border-radius:999px; font-size:14px; font-weight:650; }
+
+  #info { position:absolute; top:18px; right:18px; z-index:13; width:330px;
     max-width:calc(100vw - 36px); padding:18px 18px 16px; }
   #info .badge { display:inline-block; font-size:10.5px; text-transform:uppercase;
     letter-spacing:1px; color:var(--accent); font-weight:800; margin-bottom:7px; }
-  #info h2 { margin:0 0 3px; font-size:19px; line-height:1.25; }
+  #info h2 { margin:0 0 3px; font-size:19px; line-height:1.25; padding-right:30px; }
   #info .latin { font-style:italic; color:#b6c2d6; font-size:13.5px; margin-bottom:11px; }
   #info .tags { margin-bottom:12px; }
   #info .tag { display:inline-block; font-size:11px; color:var(--muted);
@@ -41,48 +56,95 @@
     color:var(--muted); margin-bottom:4px; }
   #info .role { font-size:14px; line-height:1.55; }
   #info .hint { font-size:12.8px; color:var(--muted); line-height:1.6; }
+  #info-close { display:none; position:absolute; top:12px; right:12px; width:30px; height:30px;
+    align-items:center; justify-content:center; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(148,163,184,.16); color:var(--text); font-size:17px; line-height:1; }
 
-  #list { position:absolute; left:18px; top:78px; bottom:78px; z-index:10; width:248px;
-    overflow-y:auto; padding:8px; }
-  #search { width:100%; margin:2px 0 8px; padding:9px 11px; font-size:13px; color:var(--text);
+  #list { position:absolute; left:18px; top:78px; bottom:78px; z-index:30; width:248px;
+    overflow-y:auto; padding:8px; -webkit-overflow-scrolling:touch; }
+  #list-head { display:none; align-items:center; justify-content:space-between; padding:2px 4px 10px; }
+  #list-head b { font-size:15px; }
+  #list-close { width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+    border:0; border-radius:50%; cursor:pointer; background:rgba(148,163,184,.16); color:var(--text); font-size:18px; }
+  #search { width:100%; margin:2px 0 8px; padding:11px 13px; font-size:16px; color:var(--text);
     background:rgba(148,163,184,0.10); border:1px solid var(--border); border-radius:10px; outline:none; }
   #search:focus { border-color:var(--accent); }
   .reg-h { font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--muted);
     padding:12px 8px 5px; font-weight:700; }
   .mbtn { display:flex; align-items:center; gap:9px; width:100%; text-align:left; cursor:pointer;
-    background:transparent; border:0; color:var(--text); padding:7px 8px; border-radius:9px;
-    font-size:13px; transition:background .12s; }
-  .mbtn:hover { background:rgba(148,163,184,0.12); }
+    background:transparent; border:0; color:var(--text); padding:9px 8px; border-radius:9px;
+    font-size:13.5px; transition:background .12s; }
+  .mbtn:active, .mbtn:hover { background:rgba(148,163,184,0.14); }
   .mbtn.active { background:linear-gradient(90deg,rgba(245,158,66,.22),rgba(245,158,66,.05)); }
   .mbtn .dot { width:11px; height:11px; border-radius:50%; flex:0 0 auto;
     box-shadow:0 0 0 2px rgba(255,255,255,0.07); }
-  .mbtn .nm { line-height:1.15; }
+  .mbtn .nm { line-height:1.18; }
   .mbtn .lt { display:block; font-size:11px; font-style:italic; color:var(--muted); }
   #list::-webkit-scrollbar { width:8px; }
   #list::-webkit-scrollbar-thumb { background:rgba(148,163,184,0.28); border-radius:8px; }
 
-  #controls { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:10;
-    display:flex; gap:7px; padding:7px 9px; border-radius:999px; flex-wrap:wrap; justify-content:center;
-    max-width:calc(100vw - 24px); }
+  #controls { position:absolute; left:50%; bottom:calc(var(--sab) + 18px); transform:translateX(-50%);
+    z-index:12; display:flex; gap:7px; padding:7px 9px; border-radius:999px; flex-wrap:wrap;
+    justify-content:center; max-width:calc(100vw - 24px); }
   .ctl { cursor:pointer; border:0; color:var(--text); background:rgba(148,163,184,0.12);
-    border-radius:999px; padding:8px 14px; font-size:13px; font-weight:650; white-space:nowrap;
+    border-radius:999px; padding:9px 14px; font-size:13px; font-weight:650; white-space:nowrap;
     transition:background .12s,color .12s; }
-  .ctl:hover { background:rgba(148,163,184,0.24); }
+  .ctl:active, .ctl:hover { background:rgba(148,163,184,0.26); }
   .ctl.on { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#1a1207; }
 
-  #loading { position:absolute; inset:0; z-index:20; display:flex; flex-direction:column;
+  #loading { position:absolute; inset:0; z-index:40; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:16px; background:#0a0f1d; color:var(--muted);
-    font-size:14px; text-align:center; padding:20px; }
+    font-size:14px; text-align:center; padding:24px; }
   .spinner { width:38px; height:38px; border-radius:50%; border:3px solid rgba(148,163,184,0.22);
     border-top-color:var(--accent); animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
-  #bar { width:240px; height:6px; background:rgba(148,163,184,.18); border-radius:999px; overflow:hidden; }
+  #bar { width:min(240px,70vw); height:6px; background:rgba(148,163,184,.18); border-radius:999px; overflow:hidden; }
   #bar > div { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .2s; }
   #loading .err { color:#fca5a5; max-width:520px; line-height:1.55; }
   #loading .err code { background:rgba(255,255,255,.08); padding:2px 6px; border-radius:5px; font-size:12px; }
-  .credits { position:absolute; right:14px; bottom:14px; z-index:6; font-size:10.5px;
-    color:rgba(154,167,189,.55); text-align:right; pointer-events:none; }
-  @media (max-width:760px){ #info{width:250px;} #list{display:none;} #title h1{font-size:16px;} }
+  .credits { position:absolute; right:calc(var(--sar) + 14px); bottom:calc(var(--sab) + 14px); z-index:6;
+    font-size:10.5px; color:rgba(154,167,189,.55); text-align:right; pointer-events:none; }
+
+  /* ===================== MOBILE / iPhone ===================== */
+  @media (max-width: 820px), (pointer: coarse) {
+    #title h1 { font-size:17px; }
+    #title p { font-size:11px; max-width:60vw; }
+    #list-toggle { display:flex; }
+    .credits { display:none; }
+
+    /* fiche info -> bottom sheet au-dessus des contrôles */
+    #info {
+      top:auto; left:8px; right:8px; width:auto; max-width:none;
+      bottom:calc(var(--sab) + 74px);
+      transform:translateY(150%); transition:transform .34s cubic-bezier(.32,.72,0,1);
+      max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:18px;
+    }
+    #info.open { transform:translateY(0); }
+    #info-close { display:flex; }
+    #info .badge { display:none; }
+
+    /* liste -> tiroir bas plein largeur */
+    #list {
+      top:auto; left:0; right:0; bottom:0; width:auto; border-radius:22px 22px 0 0;
+      max-height:84vh; transform:translateY(102%); transition:transform .34s cubic-bezier(.32,.72,0,1);
+      padding:10px 14px calc(var(--sab) + 14px); z-index:30;
+    }
+    #list.open { transform:translateY(0); }
+    #list::before { content:""; display:block; width:42px; height:5px; border-radius:999px;
+      background:rgba(148,163,184,.4); margin:2px auto 8px; }
+    #list-head { display:flex; }
+    .mbtn { padding:11px 10px; font-size:14.5px; }
+
+    /* contrôles : pilule scrollable en bas */
+    #controls {
+      bottom:calc(var(--sab) + 12px); flex-wrap:nowrap; overflow-x:auto;
+      max-width:calc(100vw - 16px); -webkit-overflow-scrolling:touch; scrollbar-width:none;
+      justify-content:flex-start;
+    }
+    #controls::-webkit-scrollbar { display:none; }
+    .ctl { flex:0 0 auto; padding:11px 15px; font-size:13.5px; }
+  }
+  @media (max-width: 380px) { #title p { display:none; } }
 </style>
 </head>
 <body>
@@ -96,18 +158,22 @@
 
   <div id="title">
     <h1>🫀 Corps humain 3D</h1>
-    <p>Glisse pour tourner · molette pour zoomer · clique un muscle</p>
+    <p>Tourne, zoome, et touche un muscle</p>
   </div>
 
+  <button id="list-toggle" class="glass">☰ Muscles</button>
+
   <div id="info" class="glass">
+    <button id="info-close" aria-label="Fermer">✕</button>
     <span class="badge">Atlas musculaire</span>
     <div id="info-body">
-      <p class="hint">Clique sur un muscle (sur le modèle ou dans la liste) pour voir son nom
+      <p class="hint">Touche un muscle (sur le modèle ou dans la liste) pour voir son nom
       français, son <em>nom scientifique</em> et son rôle.</p>
     </div>
   </div>
 
   <div id="list" class="glass">
+    <div id="list-head"><b>Muscles</b><button id="list-close" aria-label="Fermer">✕</button></div>
     <input id="search" type="text" placeholder="Rechercher un muscle…" autocomplete="off" />
     <div id="list-items"></div>
   </div>
@@ -139,6 +205,8 @@ const fail = (msg) => {
   if (l) l.innerHTML = `<div class="err"><b>Impossible d'afficher la 3D.</b><br>${msg}</div>`;
 };
 window.addEventListener('error', (e) => fail(e.message || 'Erreur inconnue.'));
+
+const MOBILE = window.matchMedia('(pointer: coarse)').matches || innerWidth < 820;
 
 /* =================== Données anatomiques (FR + latin + rôle) =================== */
 const DATA = {
@@ -200,7 +268,8 @@ const REGION_COLOR = {
   'Cou':'#c75b52','Épaule':'#cf6238','Dos':'#a83a2f','Poitrine':'#c5392c','Abdomen':'#d65a47',
   'Bras':'#d06a2c','Avant-bras':'#bf5f46','Hanche & fessiers':'#9c2f25','Cuisse':'#c24634','Jambe':'#b0532b'
 };
-// petite variation déterministe de teinte par muscle (pour distinguer les voisins)
+
+let THREE;
 function jitterColor(hex, slug) {
   let h=0; for (const c of slug) h=(h*31+c.charCodeAt(0))&0xffff;
   const col = new THREE.Color(hex); const hsl={}; col.getHSL(hsl);
@@ -209,36 +278,30 @@ function jitterColor(hex, slug) {
   return new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l);
 }
 
-/* =================== Three.js =================== */
-let THREE;
 try {
 THREE = await import('three');
 const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
 const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
 const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
 const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
-const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
-const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
-const { OutlinePass } = await import('three/addons/postprocessing/OutlinePass.js');
-const { OutputPass } = await import('three/addons/postprocessing/OutputPass.js');
 
 const app = document.getElementById('app');
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 200);
 
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
+renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 2 : 2));
+renderer.shadowMap.enabled = !MOBILE;          // ombres coûteuses : désactivées sur mobile
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.domElement.style.touchAction = 'none';
 app.appendChild(renderer.domElement);
 
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
-// fond dégradé
 scene.add(new THREE.Mesh(
   new THREE.SphereGeometry(80, 32, 32),
   new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false,
@@ -249,35 +312,48 @@ scene.add(new THREE.Mesh(
 ));
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.enableDamping = true; controls.dampingFactor = 0.09;
 controls.minDistance = 3; controls.maxDistance = 30;
+controls.rotateSpeed = MOBILE ? 0.7 : 1.0;
+controls.enablePan = !MOBILE;                  // pas de pan à 2 doigts sur mobile (gêne le pinch)
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
-scene.add(new THREE.HemisphereLight(0xdfeaff, 0x141422, 0.4));
+scene.add(new THREE.HemisphereLight(0xdfeaff, 0x141422, MOBILE ? 0.5 : 0.4));
 const key = new THREE.DirectionalLight(0xfff2e6, 1.7);
-key.position.set(6, 12, 8); key.castShadow = true;
-key.shadow.mapSize.set(2048,2048); key.shadow.bias=-0.0004;
-Object.assign(key.shadow.camera,{near:1,far:50,left:-7,right:7,top:13,bottom:-3});
+key.position.set(6, 12, 8); key.castShadow = !MOBILE;
+if (!MOBILE){ key.shadow.mapSize.set(2048,2048); key.shadow.bias=-0.0004;
+  Object.assign(key.shadow.camera,{near:1,far:50,left:-7,right:7,top:13,bottom:-3}); }
 scene.add(key);
 const rim = new THREE.DirectionalLight(0x6f9bff, 0.7); rim.position.set(-7,5,-6); scene.add(rim);
 
-// sol
-const shadowCatcher = new THREE.Mesh(new THREE.CircleGeometry(7,64), new THREE.ShadowMaterial({opacity:0.38}));
-shadowCatcher.rotation.x=-Math.PI/2; shadowCatcher.receiveShadow=true; scene.add(shadowCatcher);
 const ring = new THREE.Mesh(new THREE.RingGeometry(2.9,2.96,80),
   new THREE.MeshBasicMaterial({color:0x3a4a66,side:THREE.DoubleSide}));
 ring.rotation.x=-Math.PI/2; ring.position.y=0.002; scene.add(ring);
+let shadowCatcher=null;
+if (!MOBILE){
+  shadowCatcher = new THREE.Mesh(new THREE.CircleGeometry(7,64), new THREE.ShadowMaterial({opacity:0.38}));
+  shadowCatcher.rotation.x=-Math.PI/2; shadowCatcher.receiveShadow=true; scene.add(shadowCatcher);
+}
 
-/* -------- post-processing -------- */
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const outline = new OutlinePass(new THREE.Vector2(innerWidth,innerHeight), scene, camera);
-outline.edgeStrength=6; outline.edgeGlow=0.5; outline.edgeThickness=1.3;
-outline.visibleEdgeColor.set('#ffc37a'); outline.hiddenEdgeColor.set('#9a4e1c');
-composer.addPass(outline);
-composer.addPass(new OutputPass());
+/* -------- post-processing : seulement sur desktop (perf mobile) -------- */
+let composer=null, outline=null;
+if (!MOBILE){
+  const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
+  const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
+  const { OutlinePass } = await import('three/addons/postprocessing/OutlinePass.js');
+  const { OutputPass } = await import('three/addons/postprocessing/OutputPass.js');
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  outline = new OutlinePass(new THREE.Vector2(innerWidth,innerHeight), scene, camera);
+  outline.edgeStrength=6; outline.edgeGlow=0.5; outline.edgeThickness=1.3;
+  outline.visibleEdgeColor.set('#ffc37a'); outline.hiddenEdgeColor.set('#9a4e1c');
+  composer.addPass(outline);
+  composer.addPass(new OutputPass());
+}
+function renderFrame(){ if (composer) composer.render(); else renderer.render(scene, camera); }
 
 /* =================== Chargement du modèle =================== */
-const muscleMeshes = {};   // slug -> [meshes]
+const muscleMeshes = {};
 const pickables = [];
 let xray = false;
 
@@ -287,28 +363,23 @@ const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
 loader.load('muscles.glb',
-  (gltf) => { onLoaded(gltf); },
-  (ev) => { if (ev.total) { const p=Math.round(ev.loaded/ev.total*100);
-    document.querySelector('#bar > div').style.width = p+'%'; loadMsg(`Chargement du modèle anatomique… ${p}%`); } },
+  (gltf) => onLoaded(gltf),
+  (ev) => { if (ev.total){ const p=Math.round(ev.loaded/ev.total*100);
+    document.querySelector('#bar > div').style.width=p+'%'; loadMsg(`Chargement du modèle anatomique… ${p}%`); } },
   (err) => {
     console.error(err);
-    const isFile = location.protocol === 'file:';
-    fail(isFile
-      ? `Le fichier <code>muscles.glb</code> ne peut pas être lu en ouvrant le HTML en local
-         (les navigateurs bloquent l'accès aux fichiers locaux).<br><br>
-         ➜ Lance un petit serveur : <code>python3 -m http.server</code> puis ouvre
-         <code>http://localhost:8000</code>.<br>
-         ➜ Ou déploie sur GitHub Pages : là, tout fonctionne directement.`
-      : `Le modèle <code>muscles.glb</code> est introuvable à côté de la page.`);
+    fail(location.protocol==='file:'
+      ? `Le fichier <code>muscles.glb</code> ne peut pas être lu en local (<code>file://</code>).<br><br>
+         ➜ Lance <code>python3 -m http.server</code> puis ouvre <code>http://localhost:8000</code>,
+         ou ouvre le site déployé.`
+      : `Le modèle <code>muscles.glb</code> est introuvable.`);
   }
 );
 
-function onLoaded(gltf) {
+function onLoaded(gltf){
   const model = gltf.scene;
-  model.rotation.x = -Math.PI/2;           // BodyParts3D Z-up → Three Y-up
+  model.rotation.x = -Math.PI/2;
   model.updateMatrixWorld(true);
-
-  // mise à l'échelle + recentrage (pieds au sol)
   let box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   const s = 7 / size.y;
@@ -316,35 +387,32 @@ function onLoaded(gltf) {
   model.updateMatrixWorld(true);
   box = new THREE.Box3().setFromObject(model);
   const c = box.getCenter(new THREE.Vector3());
-  model.position.x -= c.x; model.position.z -= c.z;
-  model.position.y -= box.min.y;            // bas du modèle à y=0
+  model.position.x -= c.x; model.position.z -= c.z; model.position.y -= box.min.y;
   scene.add(model);
 
-  const H = size.y * s;                      // ~7
+  const H = size.y * s;
   controls.target.set(0, H*0.52, 0);
   setView('reset');
 
-  // matériaux + index
-  model.traverse((o) => {
+  model.traverse((o)=>{
     if (!o.isMesh) return;
-    const slug = (o.name || '').split('__')[0];
+    const slug = (o.name||'').split('__')[0];
     const info = DATA[slug];
     o.geometry.computeVertexNormals();
     const base = jitterColor(REGION_COLOR[info ? info.reg : 'Cuisse'] || '#b03a2e', slug);
     o.material = new THREE.MeshPhysicalMaterial({
       color: base, roughness:0.5, metalness:0.0,
-      clearcoat:0.2, clearcoatRoughness:0.5,
+      clearcoat:MOBILE?0:0.2, clearcoatRoughness:0.5,
       sheen:0.55, sheenColor:new THREE.Color(0xffd9c2), sheenRoughness:0.7,
       envMapIntensity:0.85, emissive: base.clone(), emissiveIntensity:0.0,
       transparent:true, opacity:1.0
     });
-    o.castShadow = true; o.userData.slug = slug; o.userData.baseOpacity = 1.0;
-    if (info) { (muscleMeshes[slug] = muscleMeshes[slug] || []).push(o); pickables.push(o); }
+    o.castShadow = !MOBILE; o.userData.slug = slug;
+    if (info){ (muscleMeshes[slug]=muscleMeshes[slug]||[]).push(o); pickables.push(o); }
   });
 
   buildList();
-  // fondu de l'écran de chargement
-  const l = document.getElementById('loading');
+  const l=document.getElementById('loading');
   if (l){ l.style.transition='opacity .45s'; l.style.opacity='0'; setTimeout(()=>l.remove(),480); }
   animate();
 }
@@ -353,19 +421,20 @@ function onLoaded(gltf) {
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let hoveredId=null, selectedId=null;
+const SEL_EMISSIVE = MOBILE ? 0.65 : 0.5;      // surbrillance + forte sur mobile (pas de contour)
 
-function setEmissive(slug, v){ (muscleMeshes[slug]||[]).forEach(m=>m.material.emissiveIntensity=v); }
+function setEmissive(slug,v){ (muscleMeshes[slug]||[]).forEach(m=>m.material.emissiveIntensity=v); }
 function applyXray(){
   for (const slug in muscleMeshes) for (const m of muscleMeshes[slug]){
     const sel = slug===selectedId || slug===hoveredId;
-    m.material.opacity = xray ? (sel ? 1.0 : 0.22) : 1.0;
+    m.material.opacity = xray ? (sel?1.0:0.20) : 1.0;
     m.material.depthWrite = !(xray && !sel);
   }
 }
 function refresh(){
   for (const slug in muscleMeshes)
-    setEmissive(slug, slug===selectedId ? 0.5 : (slug===hoveredId ? 0.28 : 0.0));
-  outline.selectedObjects = selectedId ? muscleMeshes[selectedId] : [];
+    setEmissive(slug, slug===selectedId ? SEL_EMISSIVE : (slug===hoveredId ? 0.28 : 0.0));
+  if (outline) outline.selectedObjects = selectedId ? muscleMeshes[selectedId] : [];
   applyXray();
 }
 function pickAt(cx,cy){
@@ -374,23 +443,31 @@ function pickAt(cx,cy){
   const hits = raycaster.intersectObjects(pickables, false);
   return hits.length ? hits[0].object.userData.slug : null;
 }
-renderer.domElement.addEventListener('pointermove',(e)=>{
-  const id=pickAt(e.clientX,e.clientY);
-  if (id!==hoveredId){ hoveredId=id; refresh(); renderer.domElement.style.cursor=id?'pointer':'grab'; }
-});
-let dx=0,dy=0;
-renderer.domElement.addEventListener('pointerdown',(e)=>{dx=e.clientX;dy=e.clientY;});
-renderer.domElement.addEventListener('pointerup',(e)=>{
-  if (Math.hypot(e.clientX-dx,e.clientY-dy)>5) return;
-  select(pickAt(e.clientX,e.clientY));
-});
-function select(slug){ selectedId=slug; refresh(); updateInfo(slug); markList(slug); }
+if (!MOBILE){
+  renderer.domElement.addEventListener('pointermove',(e)=>{
+    const id=pickAt(e.clientX,e.clientY);
+    if (id!==hoveredId){ hoveredId=id; refresh(); renderer.domElement.style.cursor=id?'pointer':'grab'; }
+  });
+}
+let dx=0, dy=0, moved=false;
+const TAP_TOL = MOBILE ? 11 : 5;
+renderer.domElement.addEventListener('pointerdown',(e)=>{ dx=e.clientX; dy=e.clientY; moved=false; });
+renderer.domElement.addEventListener('pointermove',(e)=>{ if (Math.hypot(e.clientX-dx,e.clientY-dy)>TAP_TOL) moved=true; });
+renderer.domElement.addEventListener('pointerup',(e)=>{ if (!moved) select(pickAt(e.clientX,e.clientY)); });
+
+const infoEl = document.getElementById('info');
+const listEl = document.getElementById('list');
+function select(slug){
+  selectedId = slug; refresh(); updateInfo(slug); markList(slug);
+  if (MOBILE){ if (slug){ infoEl.classList.add('open'); listEl.classList.remove('open'); }
+               else infoEl.classList.remove('open'); }
+}
 
 /* =================== UI =================== */
 const infoBody = document.getElementById('info-body');
 function updateInfo(slug){
   const m = slug && DATA[slug];
-  if (!m){ infoBody.innerHTML = `<p class="hint">Clique sur un muscle pour afficher son nom et son rôle.</p>`; return; }
+  if (!m){ infoBody.innerHTML = `<p class="hint">Touche un muscle pour afficher son nom et son rôle.</p>`; return; }
   infoBody.innerHTML =
     `<h2>${m.fr}</h2><div class="latin">${m.la}</div>
      <div class="tags"><span class="tag">${m.reg}</span>${m.approx?'<span class="tag approx">forme approximée</span>':''}</div>
@@ -398,8 +475,7 @@ function updateInfo(slug){
 }
 const listItems = document.getElementById('list-items');
 function buildList(filter=''){
-  const f=filter.trim().toLowerCase();
-  listItems.innerHTML='';
+  const f=filter.trim().toLowerCase(); listItems.innerHTML='';
   for (const region of REGION_ORDER){
     const slugs = Object.keys(DATA).filter(s=>DATA[s].reg===region && muscleMeshes[s] &&
       (!f || DATA[s].fr.toLowerCase().includes(f) || DATA[s].la.toLowerCase().includes(f)));
@@ -411,8 +487,8 @@ function buildList(filter=''){
       const b=document.createElement('button'); b.className='mbtn'+(s===selectedId?' active':''); b.dataset.id=s;
       b.innerHTML=`<span class="dot" style="background:${col}"></span><span class="nm">${m.fr}<span class="lt">${m.la}</span></span>`;
       b.addEventListener('click',()=>select(s));
-      b.addEventListener('mouseenter',()=>{hoveredId=s;refresh();});
-      b.addEventListener('mouseleave',()=>{hoveredId=null;refresh();});
+      if (!MOBILE){ b.addEventListener('mouseenter',()=>{hoveredId=s;refresh();});
+                    b.addEventListener('mouseleave',()=>{hoveredId=null;refresh();}); }
       listItems.appendChild(b);
     }
   }
@@ -420,12 +496,17 @@ function buildList(filter=''){
 function markList(slug){ document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('active',b.dataset.id===slug)); }
 document.getElementById('search').addEventListener('input',(e)=>buildList(e.target.value));
 
+/* drawers mobile */
+document.getElementById('list-toggle').addEventListener('click',()=>listEl.classList.toggle('open'));
+document.getElementById('list-close').addEventListener('click',()=>listEl.classList.remove('open'));
+document.getElementById('info-close').addEventListener('click',()=>{ infoEl.classList.remove('open'); select(null); });
+
 /* =================== Contrôles =================== */
 let autoRotate=false;
 const bRot=document.getElementById('btn-rotate');
 bRot.addEventListener('click',()=>{autoRotate=!autoRotate;controls.autoRotate=autoRotate;controls.autoRotateSpeed=1.2;bRot.classList.toggle('on',autoRotate);});
 function setView(which){
-  const t=controls.target, d=8.5;
+  const t=controls.target, d=MOBILE?9.5:8.5;
   if (which==='front') camera.position.set(0,t.y,d);
   else if (which==='back') camera.position.set(0,t.y,-d);
   else camera.position.set(d*0.42, t.y+1.4, d*0.92);
@@ -438,12 +519,14 @@ const bX=document.getElementById('btn-xray');
 bX.addEventListener('click',()=>{xray=!xray;bX.classList.toggle('on',xray);refresh();});
 
 /* =================== Boucle =================== */
-addEventListener('resize',()=>{
+function resize(){
   camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight); composer.setSize(innerWidth,innerHeight);
-  outline.setSize(innerWidth,innerHeight);
-});
-function animate(){ requestAnimationFrame(animate); controls.update(); composer.render(); }
+  renderer.setSize(innerWidth,innerHeight);
+  if (composer){ composer.setSize(innerWidth,innerHeight); outline.setSize(innerWidth,innerHeight); }
+}
+addEventListener('resize', resize);
+addEventListener('orientationchange', ()=>setTimeout(resize,300));
+function animate(){ requestAnimationFrame(animate); controls.update(); renderFrame(); }
 
 } catch (err) {
   fail((err&&err.message)?err.message:String(err)); console.error(err);
