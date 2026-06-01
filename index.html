@@ -153,6 +153,7 @@ const loadMsg=(h)=>{const e=document.getElementById('load-msg'); if(e)e.innerHTM
 const fail=(m)=>{const l=document.getElementById('loading'); if(l)l.innerHTML=`<div class="err"><b>Impossible d'afficher la 3D.</b><br>${m}</div>`;};
 window.addEventListener('error',(e)=>fail(e.message||'Erreur inconnue.'));
 const MOBILE = window.matchMedia('(pointer: coarse)').matches || innerWidth<900;
+const VERSION='20260601b';   // anti-cache : bump à chaque déploiement
 let THREE;
 function jitterColor(hex,key,amp){ let h=0; for(const c of key) h=(h*31+c.charCodeAt(0))&0xffff;
   const col=new THREE.Color(hex); const hsl={}; col.getHSL(hsl);
@@ -166,7 +167,7 @@ const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironm
 const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
 const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
 
-const sysd = await fetch('systems.json').then(r=>r.json());
+const sysd = await fetch('systems.json?'+VERSION,{cache:'no-cache'}).then(r=>r.json());
 const ALL = sysd.data;
 const REGORDER = sysd.regionOrder || ['Tête','Cou','Thorax','Membre supérieur','Main','Abdomen','Bassin','Cuisse','Jambe','Pied'];
 const LAYERS = sysd.layers.map((L,i)=>({...L, visible:i===0, loaded:false, group:null, opacity:1}));
@@ -244,7 +245,7 @@ function buildLayerMeshes(L,root){
 function layerFile(L){ return L.files ? L.files[sex] : L.file; }
 async function ensureLayer(L){
   if(L.loaded) return; const first=!rigReady; const file=layerFile(L); let gltf;
-  try{ gltf=await loader.loadAsync(file,(ev)=>{ if(first&&ev.total){const p=Math.round(ev.loaded/ev.total*100);
+  try{ gltf=await loader.loadAsync(file+'?'+VERSION,(ev)=>{ if(first&&ev.total){const p=Math.round(ev.loaded/ev.total*100);
     const bd=document.querySelector('#bar>div'); if(bd)bd.style.width=p+'%'; loadMsg(`Chargement du modèle… ${p}%`);} }); }
   catch(e){ if(first) fail(location.protocol==='file:'
     ? `<code>${file}</code> illisible en local (file://).<br>➜ <code>python3 -m http.server</code> puis http://localhost:8000`
