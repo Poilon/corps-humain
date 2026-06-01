@@ -153,7 +153,7 @@ const loadMsg=(h)=>{const e=document.getElementById('load-msg'); if(e)e.innerHTM
 const fail=(m)=>{const l=document.getElementById('loading'); if(l)l.innerHTML=`<div class="err"><b>Impossible d'afficher la 3D.</b><br>${m}</div>`;};
 window.addEventListener('error',(e)=>fail(e.message||'Erreur inconnue.'));
 const MOBILE = window.matchMedia('(pointer: coarse)').matches || innerWidth<900;
-const VERSION='20260601d';   // anti-cache : bump à chaque déploiement
+const VERSION='20260601e';   // anti-cache : bump à chaque déploiement
 let THREE;
 function jitterColor(hex,key,amp){ let h=0; for(const c of key) h=(h*31+c.charCodeAt(0))&0xffff;
   const col=new THREE.Color(hex); const hsl={}; col.getHSL(hsl);
