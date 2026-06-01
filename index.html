@@ -261,9 +261,8 @@ function unloadLayer(L){ if(!L.group) return;
   L.group=null; L.loaded=false;
 }
 async function setSex(s){ if(sex===s) return; sex=s; updateSexChips();
-  const L=layerByKey['reproductive'];
-  if(L && L.loaded && L.loadedSex!==sex){ const wasVisible=L.visible; unloadLayer(L);
-    if(wasVisible){ try{ await ensureLayer(L); if(L.group) L.group.visible=true; }catch{} } }
+  for(const L of LAYERS){ if(L.files && L.loaded && L.loadedSex!==sex){ const wasVisible=L.visible; unloadLayer(L);
+    if(wasVisible){ try{ await ensureLayer(L); if(L.group) L.group.visible=true; }catch{} } } }
   if(selectedId && ALL[selectedId] && ALL[selectedId].sex && ALL[selectedId].sex!==sex) select(null);
   applyFilter(); refresh(); buildList(document.getElementById('search').value);
 }
