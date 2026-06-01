@@ -239,20 +239,35 @@ function buildLayerMeshes(L,root){
     o.material=makeMat(L,col); o.userData.baseEmissive=o.material.emissive.clone(); o.userData.id=id; o.castShadow=!MOBILE;
     (meshesById[id]=meshesById[id]||[]).push(o); });
 }
+function layerFile(L){ return L.files ? L.files[sex] : L.file; }
 async function ensureLayer(L){
-  if(L.loaded) return; const first=!rigReady; let gltf;
-  try{ gltf=await loader.loadAsync(L.file,(ev)=>{ if(first&&ev.total){const p=Math.round(ev.loaded/ev.total*100);
+  if(L.loaded) return; const first=!rigReady; const file=layerFile(L); let gltf;
+  try{ gltf=await loader.loadAsync(file,(ev)=>{ if(first&&ev.total){const p=Math.round(ev.loaded/ev.total*100);
     const bd=document.querySelector('#bar>div'); if(bd)bd.style.width=p+'%'; loadMsg(`Chargement du modèle… ${p}%`);} }); }
   catch(e){ if(first) fail(location.protocol==='file:'
-    ? `<code>${L.file}</code> illisible en local (file://).<br>➜ <code>python3 -m http.server</code> puis http://localhost:8000`
-    : `<code>${L.file}</code> introuvable.`); throw e; }
-  L.loaded=true; L.group=gltf.scene; rig.add(gltf.scene);
+    ? `<code>${file}</code> illisible en local (file://).<br>➜ <code>python3 -m http.server</code> puis http://localhost:8000`
+    : `<code>${file}</code> introuvable.`); throw e; }
+  L.loaded=true; L.loadedSex=sex; L.group=gltf.scene; rig.add(gltf.scene);
   if(first) fitRig(gltf.scene);
   buildLayerMeshes(L,gltf.scene);
 }
+function unloadLayer(L){ if(!L.group) return;
+  rig.remove(L.group);
+  L.group.traverse(o=>{ if(o.isMesh){ const id=o.userData.id;
+    if(meshesById[id]){ meshesById[id]=meshesById[id].filter(m=>m!==o); if(!meshesById[id].length) delete meshesById[id]; }
+    o.geometry.dispose(); o.material.dispose(); } });
+  L.group=null; L.loaded=false;
+}
+async function setSex(s){ if(sex===s) return; sex=s; updateSexChips();
+  const L=layerByKey['reproductive'];
+  if(L && L.loaded && L.loadedSex!==sex){ const wasVisible=L.visible; unloadLayer(L);
+    if(wasVisible){ try{ await ensureLayer(L); if(L.group) L.group.visible=true; }catch{} } }
+  if(selectedId && ALL[selectedId] && ALL[selectedId].sex && ALL[selectedId].sex!==sex) select(null);
+  applyFilter(); refresh(); buildList(document.getElementById('search').value);
+}
 
 /* ---- filtres / visibilité ---- */
-let activeRegion=null, xray=false;
+let activeRegion=null, xray=false, sex='M';
 function applyFilter(){
   for(const id in meshesById){ const ok=!activeRegion || ALL[id].reg===activeRegion;
     for(const m of meshesById[id]) m.visible=ok; }
@@ -314,11 +329,17 @@ const infoBody=document.getElementById('info-body');
 function updateInfo(id){ const m=id&&ALL[id];
   if(!m){ infoBody.innerHTML=`<p class="hint">Touche une structure pour afficher son nom et son nom scientifique.</p>`; return; }
   infoBody.innerHTML=`<h2>${m.fr}</h2><div class="latin">${m.la}</div>
-    <div class="tags"><span class="tag">${layerByKey[m.layer].label}</span><span class="tag">${m.reg}</span></div>`;
+    <div class="tags"><span class="tag">${layerByKey[m.layer].label}</span><span class="tag">${m.reg}</span>${m.approx?'<span class="tag" style="color:#fbbf24;border-color:rgba(251,191,36,.4)">forme approximée</span>':''}</div>
+    ${m.role?`<div class="role-label">Rôle</div><div class="role">${m.role}</div>`:''}`;
 }
 
 /* ---- UI : barres de filtres ---- */
 const layersEl=document.getElementById('layers');
+const sexBtns={};
+for(const [s,lab,full] of [['M','♂','Homme'],['F','♀','Femme']]){ const b=document.createElement('button');
+  b.className='chip'+(sex===s?' on':''); b.textContent=lab; b.title=full;
+  b.addEventListener('click',()=>setSex(s)); layersEl.appendChild(b); sexBtns[s]=b; }
+function updateSexChips(){ for(const s in sexBtns) sexBtns[s].classList.toggle('on',sex===s); }
 const allBtn=document.createElement('button'); allBtn.className='chip allbtn'; allBtn.textContent='✦ Tout';
 allBtn.addEventListener('click',toggleAll); layersEl.appendChild(allBtn);
 const layerBtns={};
@@ -360,7 +381,8 @@ function mkItem(id){ const m=ALL[id]; const col='#'+colorFor(id).getHexString();
   b.addEventListener('click',()=>onItemClick(id));
   if(!MOBILE){ b.addEventListener('mouseenter',()=>{hoveredId=id;refresh();}); b.addEventListener('mouseleave',()=>{hoveredId=null;refresh();}); }
   return b; }
-async function onItemClick(id){ const L=layerByKey[ALL[id].layer];
+async function onItemClick(id){ const e=ALL[id]; if(e.sex && e.sex!==sex) await setSex(e.sex);
+  const L=layerByKey[e.layer];
   if(!L.visible){ if(!L.loaded){ showToast(`Chargement : ${L.label}…`); try{await ensureLayer(L);}catch{} hideToast(); }
     L.visible=true; if(L.group)L.group.visible=true; layerBtns[L.key].classList.add('on'); applyFilter(); }
   select(id); focusId(id); if(MOBILE) listEl.classList.remove('open'); }
@@ -368,7 +390,8 @@ function buildList(filter=''){
   const f=(filter||'').trim().toLowerCase(); listItems.innerHTML='';
   if(f){ // recherche GLOBALE (tous systèmes, même non chargés)
     let n=0; const matches=[];
-    for(const id in ALL){ const m=ALL[id]; if(m.fr.toLowerCase().includes(f)||m.la.toLowerCase().includes(f)){ matches.push(id); if(matches.length>CAP+1) break; } }
+    for(const id in ALL){ const m=ALL[id]; if(m.sex && m.sex!==sex) continue;
+      if(m.fr.toLowerCase().includes(f)||m.la.toLowerCase().includes(f)){ matches.push(id); if(matches.length>CAP+1) break; } }
     if(!matches.length){ listItems.innerHTML=`<div class="more">Aucun résultat</div>`; return; }
     const byL={}; for(const id of matches.slice(0,CAP)){ (byL[ALL[id].layer]=byL[ALL[id].layer]||[]).push(id); }
     for(const L of LAYERS){ if(!byL[L.key]) continue; const h=document.createElement('div'); h.className='lyr-h'; h.innerHTML=`<span class="t">${L.label}</span>`; listItems.appendChild(h);
