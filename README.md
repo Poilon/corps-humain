@@ -1,85 +1,67 @@
-# 🫀 Corps humain 3D — Atlas musculaire interactif
+# 🫀 Corps humain 3D — Atlas anatomique complet
 
-Page statique : un **vrai modèle anatomique 3D** du système musculaire, que tu peux
-faire tourner et zoomer, et dont chaque muscle est cliquable pour afficher son **nom
-français**, son **nom scientifique (latin)** et son **rôle**.
+Page statique : un atlas 3D de **tout le corps humain** (~2234 structures réelles
+issues de BodyParts3D), explorable au doigt/à la souris, avec **filtres**.
 
-![aperçu](#)
+## Contenu — 11 systèmes, ~2234 structures
 
-## Ce que ça contient
+| Système | Pièces | Fichier |
+|---|---|---|
+| 💪 Muscles | 418 | `muscular.glb` |
+| 🦴 Squelette | 249 | `skeletal.glb` |
+| 🧠 Nerveux (encéphale, œil, nerfs crâniens) | 173 | `nervous.glb` |
+| ❤️ Cardiovasculaire (cœur + arbre vasculaire) | 1065 | `cardiovascular.glb` |
+| 🫁 Respiratoire (voies aériennes, larynx) | 144 | `respiratory.glb` |
+| 🍽️ Digestif | 152 | `digestive.glb` |
+| 💧 Urinaire | 6 | `urinary.glb` |
+| ⚧ Reproducteur (masculin) | 12 | `reproductive.glb` |
+| 🧬 Endocrinien | 4 | `endocrine.glb` |
+| 🛡️ Lymphatique | 2 | `lymphatic.glb` |
+| 🧴 Tégument (peau) | 9 | `integumentary.glb` |
 
-- **Modèle anatomique réel** : ~190 maillages issus de **BodyParts3D** (segmentation
-  anatomique réelle), regroupés en **52 muscles** nommés, classés par région
-  (cou, épaule, dos, poitrine, abdomen, bras, avant-bras, hanche & fessiers, cuisse, jambe).
-- Tout est fusionné dans un seul fichier **`muscles.glb`** (~1,6 Mo, compressé Draco).
-- Rendu **Three.js** : éclairage d'environnement, tone mapping, contour lumineux sur
-  sélection, ombre de contact, fond dégradé.
-- Liste latérale avec **recherche**, boutons **vue avant / arrière**, **rotation auto**,
-  **transparence** (met en valeur le muscle survolé/sélectionné), **recentrer**.
+Chaque structure est **cliquable individuellement**, avec un **nom français**
+(traduit automatiquement) et son **nom scientifique** (latin/anglais, exact).
+Les données sont dans `systems.json` (généré).
 
-> ℹ️ Deux muscles (**grand droit de l'abdomen** et **grand dorsal**) sont absents du
-> jeu de données BodyParts3D : ils sont **approximés** (forme reconstruite et placée
-> d'après les muscles voisins). Ils sont signalés « forme approximée » dans la fiche.
+## Filtres
+
+- **Par système** : chips en haut, superposables + bouton **✦ Tout** (tout afficher/masquer).
+- **Par région du corps** : Tête, Cou, Thorax, Abdomen, Bassin, Membres… (2ᵉ rangée de chips).
+- **Recherche globale** : cherche dans **tous** les systèmes à la fois (FR + scientifique) ;
+  un résultat charge et affiche son système automatiquement.
+- **Transparence / écorché** : curseur d'opacité **par système** (dans l'en-tête de chaque
+  système dans la liste) pour voir à travers.
+
+## Rendu
+
+Three.js : éclairage d'environnement, tone mapping, contour lumineux sur la sélection
+(desktop), ombre de contact, fond dégradé. Chargement **à la demande** par système
+(le 1ᵉʳ écran ne charge que les muscles). Tous les systèmes partagent le même repère,
+donc s'alignent parfaitement.
 
 ## Lancer en local
 
-⚠️ Cette version charge un fichier 3D (`muscles.glb`). Les navigateurs **bloquent la
-lecture de fichiers locaux** quand on ouvre le HTML en double-cliquant (`file://`).
-Il faut donc un petit serveur local :
+Les modèles sont des fichiers `.glb` → il faut un serveur (les navigateurs bloquent
+`file://`) :
 
 ```bash
 cd corps-humain
-python3 -m http.server 8000
-# puis ouvre http://localhost:8000
+python3 -m http.server 8000   # http://localhost:8000
 ```
 
-(Sur GitHub Pages, aucun serveur à lancer : tout fonctionne directement.)
+Sur GitHub Pages, aucun serveur : ça marche directement.
 
-## Déploiement sur GitHub Pages
+## Limites du jeu de données (BodyParts3D)
 
-```bash
-git init
-git add .
-git commit -m "Corps humain 3D — atlas musculaire"
-git branch -M main
-git remote add origin https://github.com/Poilon/corps-humain.git
-git push -u origin main
-```
+- « Nerveux » = encéphale + nerfs crâniens/œil (pas de nerfs périphériques).
+- « Respiratoire » = voies aériennes + larynx (pas de parenchyme pulmonaire).
+- « Reproducteur » = anatomie masculine uniquement.
+- Noms FR du long tail (micro-vaisseaux, sous-parties) parfois approximatifs ;
+  le nom scientifique affiché reste exact.
 
-Puis **Settings → Pages → Deploy from a branch → `main` / `/(root)`**.
-Le site sera en ligne sur :
+## Crédits & licence
 
-```
-https://poilon.github.io/corps-humain/
-```
-
-(Si tu nommes le repo `poilon.github.io`, il sort à la racine `https://poilon.github.io/`.)
-Le fichier `.nojekyll` est présent pour servir les fichiers tels quels.
-
-## Commandes (souris)
-
-| Action          | Comment                          |
-|-----------------|----------------------------------|
-| Tourner autour  | Glisser (bouton gauche)          |
-| Zoomer          | Molette                          |
-| Déplacer        | Glisser (bouton droit)           |
-| Sélectionner    | Cliquer un muscle (ou la liste)  |
-| Transparence    | Bouton « Transparence »          |
-
-## Crédits & licence du modèle
-
-Géométrie anatomique : **BodyParts3D**, © The Database Center for Life Science (DBCLS),
-sous licence **CC-BY-SA 2.1 Japan**. Le fichier `muscles.glb` est un dérivé (sélection,
-fusion, simplification) et reste sous la même licence **CC-BY-SA**. Merci de conserver
-l'attribution affichée en bas de la page si tu réutilises le modèle.
-
-Données récupérées via le dépôt open-source
+Géométrie : **BodyParts3D**, © The Database Center for Life Science (DBCLS),
+**CC-BY-SA 2.1 Japan**. Les `.glb` sont des dérivés (sélection, fusion, simplification,
+compression Draco) sous la même licence. Données via le dépôt
 [`jixiangying/anatomy`](https://github.com/jixiangying/anatomy).
-
-## Étendre / modifier
-
-- Le contenu des fiches (noms FR, latin, rôles, région) est dans l'objet `DATA` en haut
-  du `<script>` de `index.html`, indexé par identifiant de muscle.
-- Pour ajouter d'autres muscles, il faut régénérer `muscles.glb` à partir des OBJ
-  BodyParts3D (le pipeline : téléchargement des OBJ → fusion en GLB nommé →
-  `gltf-transform simplify` + `draco`).

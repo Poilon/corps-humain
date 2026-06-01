@@ -8,163 +8,130 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Corps 3D" />
-<title>Corps humain 3D — Atlas anatomique interactif</title>
+<title>Corps humain 3D — Atlas anatomique complet</title>
 <style>
-  :root {
-    --panel: rgba(13, 19, 33, 0.86);
-    --accent: #f59e42; --accent-2: #ff7a45;
-    --text: #eef2f8; --muted: #9aa7bd; --border: rgba(148, 163, 184, 0.16);
-    --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
-    --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin:0; padding:0; height:100%; overflow:hidden; overscroll-behavior:none;
-    position:fixed; inset:0; -webkit-text-size-adjust:100%;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:#0a0f1d; color:var(--text); }
-  #app { position:fixed; inset:0; }
-  canvas { display:block; touch-action:none; }
-  #vignette { position:absolute; inset:0; pointer-events:none; z-index:5;
-    box-shadow: inset 0 0 220px 40px rgba(0,0,0,0.55); }
-
-  #title { position:absolute; top:calc(var(--sat) + 16px); left:calc(var(--sal) + 18px); z-index:10;
-    pointer-events:none; text-shadow:0 2px 14px rgba(0,0,0,0.7); }
-  #title h1 { margin:0; font-size:21px; font-weight:750; }
-  #title p { margin:5px 0 0; font-size:12.5px; color:var(--muted); }
-
+  :root { --panel:rgba(13,19,33,0.86); --accent:#f59e42; --accent-2:#ff7a45;
+    --text:#eef2f8; --muted:#9aa7bd; --border:rgba(148,163,184,0.16);
+    --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+    --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;
+    -webkit-text-size-adjust:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#0a0f1d;color:var(--text); }
+  #app { position:fixed; inset:0; } canvas { display:block; touch-action:none; }
+  #vignette { position:absolute; inset:0; pointer-events:none; z-index:5; box-shadow:inset 0 0 220px 40px rgba(0,0,0,0.55); }
   .glass { background:var(--panel); border:1px solid var(--border); border-radius:16px;
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); box-shadow:0 14px 46px rgba(0,0,0,0.5); }
 
-  /* sélecteur de calques */
-  #layers { position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:15;
-    display:flex; gap:5px; padding:5px; border-radius:999px; max-width:calc(100vw - 24px);
-    flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
-  #layers::-webkit-scrollbar { display:none; }
-  .lyr { cursor:pointer; border:0; background:transparent; color:var(--muted); padding:9px 15px;
-    border-radius:999px; font-size:13px; font-weight:650; white-space:nowrap; transition:.12s; }
-  .lyr.on { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#1a1207; }
-  .lyr.loading { opacity:.6; }
+  #title { position:absolute; top:calc(var(--sat) + 14px); left:calc(var(--sal) + 16px); z-index:10;
+    pointer-events:none; text-shadow:0 2px 14px rgba(0,0,0,0.7); }
+  #title h1 { margin:0; font-size:18px; font-weight:750; }
+  #title p { margin:3px 0 0; font-size:11.5px; color:var(--muted); }
 
-  #toast { position:absolute; top:72px; left:50%; transform:translateX(-50%) translateY(-8px);
-    opacity:0; transition:.2s; z-index:25; padding:9px 16px; border-radius:999px; font-size:13px;
-    pointer-events:none; }
+  .topbar { position:absolute; left:50%; transform:translateX(-50%); z-index:15; display:flex; gap:5px;
+    padding:5px; border-radius:999px; max-width:calc(100vw - 20px); flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+  .topbar::-webkit-scrollbar { display:none; }
+  #layers { top:14px; }
+  #regionbar { top:60px; }
+  .chip { cursor:pointer; border:0; background:transparent; color:var(--muted); padding:8px 13px;
+    border-radius:999px; font-size:12.5px; font-weight:650; white-space:nowrap; transition:.12s; }
+  .chip.on { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#1a1207; }
+  .chip.loading { opacity:.55; }
+  .chip.allbtn { background:rgba(148,163,184,0.16); color:var(--text); }
+
+  #toast { position:absolute; top:104px; left:50%; transform:translateX(-50%) translateY(-8px); opacity:0;
+    transition:.2s; z-index:25; padding:9px 16px; border-radius:999px; font-size:13px; pointer-events:none; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-  #list-toggle { display:none; position:absolute; top:calc(var(--sat) + 14px); right:calc(var(--sar) + 14px);
-    z-index:14; align-items:center; gap:7px; cursor:pointer; border:0; color:var(--text);
-    padding:10px 15px; border-radius:999px; font-size:14px; font-weight:650; }
+  #list-toggle { display:none; position:absolute; top:calc(var(--sat) + 12px); right:calc(var(--sar) + 12px);
+    z-index:16; align-items:center; gap:6px; cursor:pointer; border:0; color:var(--text);
+    padding:9px 14px; border-radius:999px; font-size:13.5px; font-weight:650; }
 
-  #info { position:absolute; top:78px; right:18px; z-index:13; width:330px;
-    max-width:calc(100vw - 36px); padding:18px 18px 16px; }
-  #info .badge { display:inline-block; font-size:10.5px; text-transform:uppercase;
-    letter-spacing:1px; color:var(--accent); font-weight:800; margin-bottom:7px; }
-  #info h2 { margin:0 0 3px; font-size:19px; line-height:1.25; padding-right:30px; }
-  #info .latin { font-style:italic; color:#b6c2d6; font-size:13.5px; margin-bottom:11px; }
-  #info .tags { margin-bottom:12px; }
-  #info .tag { display:inline-block; font-size:11px; color:var(--muted);
-    border:1px solid var(--border); border-radius:999px; padding:2px 9px; margin:0 5px 5px 0; }
-  #info .tag.approx { color:#fbbf24; border-color:rgba(251,191,36,.4); }
-  #info .role-label { font-size:10.5px; text-transform:uppercase; letter-spacing:1px;
-    color:var(--muted); margin-bottom:4px; }
-  #info .role { font-size:14px; line-height:1.55; }
-  #info .hint { font-size:12.8px; color:var(--muted); line-height:1.6; }
-  #info-close { display:none; position:absolute; top:12px; right:12px; width:30px; height:30px;
-    align-items:center; justify-content:center; border:0; border-radius:50%; cursor:pointer;
-    background:rgba(148,163,184,.16); color:var(--text); font-size:17px; line-height:1; }
+  #info { position:absolute; top:108px; right:18px; z-index:13; width:330px; max-width:calc(100vw - 36px); padding:18px 18px 16px; }
+  #info .badge { display:inline-block; font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--accent); font-weight:800; margin-bottom:7px; }
+  #info h2 { margin:0 0 3px; font-size:18px; line-height:1.25; padding-right:30px; }
+  #info .latin { font-style:italic; color:#b6c2d6; font-size:13px; margin-bottom:11px; }
+  #info .tags { margin-bottom:6px; }
+  #info .tag { display:inline-block; font-size:11px; color:var(--muted); border:1px solid var(--border); border-radius:999px; padding:2px 9px; margin:0 5px 5px 0; }
+  #info .role-label { font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin:8px 0 4px; }
+  #info .role { font-size:13.5px; line-height:1.5; }
+  #info .hint { font-size:12.5px; color:var(--muted); line-height:1.55; }
+  #info-close { display:none; position:absolute; top:12px; right:12px; width:30px; height:30px; align-items:center; justify-content:center;
+    border:0; border-radius:50%; cursor:pointer; background:rgba(148,163,184,.16); color:var(--text); font-size:17px; }
 
-  #list { position:absolute; left:18px; top:140px; bottom:78px; z-index:30; width:252px;
-    overflow-y:auto; padding:8px; -webkit-overflow-scrolling:touch; }
+  #list { position:absolute; left:18px; top:108px; bottom:78px; z-index:30; width:264px; overflow-y:auto; padding:8px; -webkit-overflow-scrolling:touch; }
   #list-head { display:none; align-items:center; justify-content:space-between; padding:2px 4px 10px; }
   #list-head b { font-size:15px; }
-  #list-close { width:32px; height:32px; display:flex; align-items:center; justify-content:center;
-    border:0; border-radius:50%; cursor:pointer; background:rgba(148,163,184,.16); color:var(--text); font-size:18px; }
-  #search { width:100%; margin:2px 0 8px; padding:11px 13px; font-size:16px; color:var(--text);
-    background:rgba(148,163,184,0.10); border:1px solid var(--border); border-radius:10px; outline:none; }
+  #list-close { width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;cursor:pointer;background:rgba(148,163,184,.16);color:var(--text);font-size:18px; }
+  #search { width:100%; margin:2px 0 6px; padding:11px 13px; font-size:16px; color:var(--text); background:rgba(148,163,184,0.10); border:1px solid var(--border); border-radius:10px; outline:none; }
   #search:focus { border-color:var(--accent); }
-  .lyr-h { font-size:11px; text-transform:uppercase; letter-spacing:1.2px; font-weight:800;
-    color:var(--accent); padding:14px 8px 4px; }
-  .reg-h { font-size:10.5px; text-transform:uppercase; letter-spacing:1px; color:var(--muted);
-    padding:9px 8px 4px; font-weight:700; }
-  .mbtn { display:flex; align-items:center; gap:9px; width:100%; text-align:left; cursor:pointer;
-    background:transparent; border:0; color:var(--text); padding:9px 8px; border-radius:9px;
-    font-size:13.5px; transition:background .12s; }
-  .mbtn:active, .mbtn:hover { background:rgba(148,163,184,0.14); }
+  .lyr-h { display:flex; align-items:center; gap:8px; padding:13px 6px 5px; }
+  .lyr-h .t { font-size:12px; text-transform:uppercase; letter-spacing:1px; font-weight:800; color:var(--accent); flex:1; }
+  .lyr-h input[type=range] { width:74px; accent-color:var(--accent); }
+  .reg-h { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:8px 6px 3px; font-weight:700; }
+  .mbtn { display:flex; align-items:center; gap:9px; width:100%; text-align:left; cursor:pointer; background:transparent; border:0; color:var(--text); padding:8px; border-radius:9px; font-size:13px; transition:background .12s; }
+  .mbtn:active,.mbtn:hover { background:rgba(148,163,184,0.14); }
   .mbtn.active { background:linear-gradient(90deg,rgba(245,158,66,.22),rgba(245,158,66,.05)); }
-  .mbtn .dot { width:11px; height:11px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 0 2px rgba(255,255,255,0.07); }
-  .mbtn .nm { line-height:1.18; }
-  .mbtn .lt { display:block; font-size:11px; font-style:italic; color:var(--muted); }
-  #list::-webkit-scrollbar { width:8px; }
-  #list::-webkit-scrollbar-thumb { background:rgba(148,163,184,0.28); border-radius:8px; }
+  .mbtn .dot { width:10px;height:10px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,0.07); }
+  .mbtn .nm { line-height:1.15; }
+  .mbtn .lt { display:block; font-size:10.5px; font-style:italic; color:var(--muted); }
+  .more { font-size:11.5px; color:var(--muted); padding:6px 8px; font-style:italic; }
+  #list::-webkit-scrollbar { width:8px; } #list::-webkit-scrollbar-thumb { background:rgba(148,163,184,0.28); border-radius:8px; }
 
-  #controls { position:absolute; left:50%; bottom:calc(var(--sab) + 18px); transform:translateX(-50%);
-    z-index:12; display:flex; gap:7px; padding:7px 9px; border-radius:999px; flex-wrap:wrap;
-    justify-content:center; max-width:calc(100vw - 24px); }
-  .ctl { cursor:pointer; border:0; color:var(--text); background:rgba(148,163,184,0.12);
-    border-radius:999px; padding:9px 14px; font-size:13px; font-weight:650; white-space:nowrap;
-    transition:background .12s,color .12s; }
-  .ctl:active, .ctl:hover { background:rgba(148,163,184,0.26); }
+  #controls { position:absolute; left:50%; bottom:calc(var(--sab) + 16px); transform:translateX(-50%); z-index:12;
+    display:flex; gap:7px; padding:7px 9px; border-radius:999px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; max-width:calc(100vw - 20px); }
+  #controls::-webkit-scrollbar { display:none; }
+  .ctl { cursor:pointer; border:0; color:var(--text); background:rgba(148,163,184,0.12); border-radius:999px; padding:9px 14px; font-size:13px; font-weight:650; white-space:nowrap; flex:0 0 auto; transition:.12s; }
+  .ctl:active,.ctl:hover { background:rgba(148,163,184,0.26); }
   .ctl.on { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#1a1207; }
 
-  #loading { position:absolute; inset:0; z-index:40; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:16px; background:#0a0f1d; color:var(--muted);
-    font-size:14px; text-align:center; padding:24px; }
-  .spinner { width:38px; height:38px; border-radius:50%; border:3px solid rgba(148,163,184,0.22);
-    border-top-color:var(--accent); animation:spin .8s linear infinite; }
+  #loading { position:absolute; inset:0; z-index:40; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:#0a0f1d; color:var(--muted); font-size:14px; text-align:center; padding:24px; }
+  .spinner { width:38px;height:38px;border-radius:50%;border:3px solid rgba(148,163,184,0.22);border-top-color:var(--accent);animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   #bar { width:min(240px,70vw); height:6px; background:rgba(148,163,184,.18); border-radius:999px; overflow:hidden; }
-  #bar > div { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .2s; }
+  #bar>div { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .2s; }
   #loading .err { color:#fca5a5; max-width:520px; line-height:1.55; }
   #loading .err code { background:rgba(255,255,255,.08); padding:2px 6px; border-radius:5px; font-size:12px; }
-  .credits { position:absolute; right:calc(var(--sar) + 14px); bottom:calc(var(--sab) + 14px); z-index:6;
-    font-size:10.5px; color:rgba(154,167,189,.55); text-align:right; pointer-events:none; }
 
-  @media (max-width: 860px), (pointer: coarse) {
-    #title h1 { font-size:17px; } #title p { display:none; }
+  @media (max-width:900px), (pointer:coarse) {
+    #title h1 { font-size:15px; } #title p { display:none; }
     #list-toggle { display:flex; }
-    .credits { display:none; }
-    #layers { top:calc(var(--sat) + 56px); overflow-x:auto; scrollbar-width:none; }
-    #layers::-webkit-scrollbar { display:none; }
-    #toast { top:calc(var(--sat) + 108px); }
-    #info { top:auto; left:8px; right:8px; width:auto; max-width:none; bottom:calc(var(--sab) + 74px);
-      transform:translateY(150%); transition:transform .34s cubic-bezier(.32,.72,0,1);
-      max-height:46vh; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:18px; }
+    #layers { top:calc(var(--sat) + 50px); }
+    #regionbar { top:calc(var(--sat) + 92px); }
+    #toast { top:calc(var(--sat) + 134px); }
+    #info { top:auto; left:8px; right:8px; width:auto; max-width:none; bottom:calc(var(--sab) + 72px);
+      transform:translateY(160%); transition:transform .34s cubic-bezier(.32,.72,0,1); max-height:44vh; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:18px; }
     #info.open { transform:translateY(0); } #info-close { display:flex; } #info .badge { display:none; }
-    #list { top:auto; left:0; right:0; bottom:0; width:auto; border-radius:22px 22px 0 0; max-height:84vh;
-      transform:translateY(102%); transition:transform .34s cubic-bezier(.32,.72,0,1);
-      padding:10px 14px calc(var(--sab) + 14px); z-index:30; }
+    #list { top:auto; left:0; right:0; bottom:0; width:auto; border-radius:22px 22px 0 0; max-height:82vh;
+      transform:translateY(102%); transition:transform .34s cubic-bezier(.32,.72,0,1); padding:10px 14px calc(var(--sab) + 14px); z-index:30; }
     #list.open { transform:translateY(0); }
-    #list::before { content:""; display:block; width:42px; height:5px; border-radius:999px;
-      background:rgba(148,163,184,.4); margin:2px auto 8px; }
-    #list-head { display:flex; } .mbtn { padding:11px 10px; font-size:14.5px; }
-    #controls { bottom:calc(var(--sab) + 12px); flex-wrap:nowrap; overflow-x:auto;
-      max-width:calc(100vw - 16px); -webkit-overflow-scrolling:touch; scrollbar-width:none; justify-content:flex-start; }
-    #controls::-webkit-scrollbar { display:none; } .ctl { flex:0 0 auto; padding:11px 15px; font-size:13.5px; }
+    #list::before { content:""; display:block; width:42px; height:5px; border-radius:999px; background:rgba(148,163,184,.4); margin:2px auto 8px; }
+    #list-head { display:flex; } .mbtn { padding:11px 8px; font-size:14px; }
+    #controls { bottom:calc(var(--sab) + 12px); }
   }
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="loading"><div class="spinner"></div><div id="load-msg">Chargement du modèle anatomique…</div><div id="bar"><div></div></div></div>
+  <div id="loading"><div class="spinner"></div><div id="load-msg">Chargement du modèle…</div><div id="bar"><div></div></div></div>
   <div id="vignette"></div>
+  <div id="title"><h1>🫀 Corps humain 3D</h1><p>Atlas complet · tourne, zoome, touche une structure</p></div>
 
-  <div id="title"><h1>🫀 Corps humain 3D</h1><p>Tourne, zoome, et touche une structure</p></div>
-
-  <div id="layers" class="glass"></div>
+  <div id="layers" class="topbar glass"></div>
+  <div id="regionbar" class="topbar glass"></div>
   <div id="toast" class="glass"></div>
-
   <button id="list-toggle" class="glass">☰ Liste</button>
 
   <div id="info" class="glass">
     <button id="info-close" aria-label="Fermer">✕</button>
     <span class="badge">Atlas anatomique</span>
-    <div id="info-body"><p class="hint">Touche une structure (sur le modèle ou dans la liste) pour voir son nom
-      français, son <em>nom scientifique</em> et son rôle. Active des calques en haut pour superposer
-      muscles, squelette et système nerveux.</p></div>
+    <div id="info-body"><p class="hint">Active des systèmes en haut, filtre par région, ou cherche dans la liste.
+      Touche une structure pour voir son nom et son nom scientifique.</p></div>
   </div>
 
   <div id="list" class="glass">
     <div id="list-head"><b>Anatomie</b><button id="list-close" aria-label="Fermer">✕</button></div>
-    <input id="search" type="text" placeholder="Rechercher…" autocomplete="off" />
+    <input id="search" type="text" placeholder="Rechercher dans tout le corps…" autocomplete="off" />
     <div id="list-items"></div>
   </div>
 
@@ -172,114 +139,24 @@
     <button class="ctl" id="btn-rotate">⟳ Rotation</button>
     <button class="ctl" id="btn-front">Avant</button>
     <button class="ctl" id="btn-back">Arrière</button>
-    <button class="ctl" id="btn-xray">Transparence</button>
     <button class="ctl" id="btn-reset">⤢ Recentrer</button>
   </div>
-
-  <div class="credits">Modèle : BodyParts3D © Life Science DB (CC-BY-SA 2.1 JP)<br>Abdos &amp; grand dorsal : approximés</div>
 </div>
 
 <script type="importmap">
-{ "imports": {
-  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-} }
+{ "imports": { "three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/" } }
 </script>
 
 <script type="module">
 const loadMsg=(h)=>{const e=document.getElementById('load-msg'); if(e)e.innerHTML=h;};
 const fail=(m)=>{const l=document.getElementById('loading'); if(l)l.innerHTML=`<div class="err"><b>Impossible d'afficher la 3D.</b><br>${m}</div>`;};
 window.addEventListener('error',(e)=>fail(e.message||'Erreur inconnue.'));
-const MOBILE = window.matchMedia('(pointer: coarse)').matches || innerWidth < 860;
+const MOBILE = window.matchMedia('(pointer: coarse)').matches || innerWidth<900;
 let THREE;
-
-/* ============== DONNÉES ============== */
-const REGION_COLOR = { 'Cou':'#c75b52','Épaule':'#cf6238','Dos':'#a83a2f','Poitrine':'#c5392c','Abdomen':'#d65a47',
-  'Bras':'#d06a2c','Avant-bras':'#bf5f46','Hanche & fessiers':'#9c2f25','Cuisse':'#c24634','Jambe':'#b0532b' };
-
-const DATA_MUSCLES = {
-  sternocleidomastoid:{fr:"Sterno-cléido-mastoïdien",la:"Musculus sternocleidomastoideus",reg:"Cou",role:"Fléchit le cou et tourne la tête du côté opposé ; les deux ensemble inclinent la tête en avant."},
-  splenius:{fr:"Splénius",la:"Musculus splenius capitis / cervicis",reg:"Cou",role:"À l'arrière du cou. Étend et fait tourner la tête et le cou."},
-  scalenes:{fr:"Scalènes",la:"Musculi scaleni",reg:"Cou",role:"Sur les côtés du cou. Fléchissent et inclinent le cou ; élèvent les premières côtes (inspiration)."},
-  levator_scapulae:{fr:"Élévateur de la scapula",la:"Musculus levator scapulae",reg:"Cou",role:"Élève l'omoplate (hausser l'épaule) et incline le cou."},
-  trapezius:{fr:"Trapèze",la:"Musculus trapezius",reg:"Dos",role:"Grand muscle losangique du haut du dos. Élève / abaisse et rapproche les omoplates ; étend la tête."},
-  deltoid:{fr:"Deltoïde",la:"Musculus deltoideus",reg:"Épaule",role:"Coiffe l'épaule. Lève le bras sur le côté ; ses faisceaux avant et arrière le fléchissent et l'étendent."},
-  infraspinatus:{fr:"Infra-épineux",la:"Musculus infraspinatus",reg:"Épaule",role:"Coiffe des rotateurs. Rotation externe du bras et stabilisation de l'épaule."},
-  supraspinatus:{fr:"Supra-épineux",la:"Musculus supraspinatus",reg:"Épaule",role:"Coiffe des rotateurs. Amorce l'abduction du bras (premiers degrés)."},
-  teres_major:{fr:"Grand rond",la:"Musculus teres major",reg:"Épaule",role:"Ramène le bras en arrière et en dedans, rotation interne. Assistant du grand dorsal."},
-  teres_minor:{fr:"Petit rond",la:"Musculus teres minor",reg:"Épaule",role:"Coiffe des rotateurs. Rotation externe du bras."},
-  rhomboid:{fr:"Rhomboïdes",la:"Musculi rhomboidei",reg:"Dos",role:"Entre les omoplates. Les rapprochent de la colonne (rétraction des épaules)."},
-  serratus_anterior:{fr:"Dentelé antérieur",la:"Musculus serratus anterior",reg:"Poitrine",role:"Sur le côté des côtes. Tire l'omoplate vers l'avant (pousser, lancer) — le « muscle du boxeur »."},
-  erector_spinae:{fr:"Érecteurs du rachis",la:"Musculi erectores spinae",reg:"Dos",role:"Colonnes le long de la colonne (ilio-costal, long dorsal, épineux). Redressent et maintiennent le tronc droit."},
-  pectoralis_major:{fr:"Grand pectoral",la:"Musculus pectoralis major",reg:"Poitrine",role:"Grand muscle de la poitrine. Adduction et rotation interne du bras, le ramène vers l'avant."},
-  pectoralis_minor:{fr:"Petit pectoral",la:"Musculus pectoralis minor",reg:"Poitrine",role:"Sous le grand pectoral. Abaisse l'épaule et tire l'omoplate vers l'avant et le bas."},
-  external_oblique:{fr:"Oblique externe",la:"Musculus obliquus externus abdominis",reg:"Abdomen",role:"Sur les flancs. Rotation et inclinaison latérale du tronc, comprime l'abdomen."},
-  rectus_abdominis:{fr:"Grand droit de l'abdomen",la:"Musculus rectus abdominis",reg:"Abdomen",role:"Les « tablettes ». Fléchit le tronc vers l'avant et stabilise le bassin.",approx:true},
-  latissimus_dorsi:{fr:"Grand dorsal",la:"Musculus latissimus dorsi",reg:"Dos",role:"Le plus large muscle du dos. Adduction et extension du bras — muscle clé des tractions.",approx:true},
-  biceps_brachii:{fr:"Biceps brachial",la:"Musculus biceps brachii",reg:"Bras",role:"Avant du bras. Fléchit le coude et tourne la paume vers le haut (supination)."},
-  brachialis:{fr:"Brachial",la:"Musculus brachialis",reg:"Bras",role:"Sous le biceps. Puissant fléchisseur du coude quelle que soit la position de la main."},
-  triceps_brachii:{fr:"Triceps brachial",la:"Musculus triceps brachii",reg:"Bras",role:"Arrière du bras (3 chefs). Étend le coude. Antagoniste du biceps."},
-  coracobrachialis:{fr:"Coraco-brachial",la:"Musculus coracobrachialis",reg:"Bras",role:"Face interne du bras. Fléchit le bras et le ramène vers le corps."},
-  anconeus:{fr:"Anconé",la:"Musculus anconeus",reg:"Bras",role:"Petit muscle du coude. Assiste le triceps dans l'extension."},
-  brachioradialis:{fr:"Brachio-radial",la:"Musculus brachioradialis",reg:"Avant-bras",role:"Bord de l'avant-bras. Fléchit le coude, surtout main en position « marteau »."},
-  forearm_flexors:{fr:"Fléchisseurs de l'avant-bras",la:"Musculi flexores antebrachii",reg:"Avant-bras",role:"Face interne (carpe, doigts, rond pronateur). Plient le poignet et referment les doigts."},
-  forearm_extensors:{fr:"Extenseurs de l'avant-bras",la:"Musculi extensores antebrachii",reg:"Avant-bras",role:"Face externe. Redressent le poignet, tendent les doigts ; le supinateur tourne la paume vers le haut."},
-  gluteus_maximus:{fr:"Grand fessier",la:"Musculus gluteus maximus",reg:"Hanche & fessiers",role:"Le plus puissant du corps. Étend la hanche (se lever, monter, courir) et rotation externe."},
-  gluteus_medius:{fr:"Moyen fessier",la:"Musculus gluteus medius",reg:"Hanche & fessiers",role:"Côté de la hanche. Abduction de la cuisse, stabilise le bassin à chaque pas."},
-  gluteus_minimus:{fr:"Petit fessier",la:"Musculus gluteus minimus",reg:"Hanche & fessiers",role:"Sous le moyen fessier. Abduction et rotation interne de la cuisse."},
-  tfl:{fr:"Tenseur du fascia lata",la:"Musculus tensor fasciae latae",reg:"Hanche & fessiers",role:"Avant de la hanche. Fléchit et écarte la cuisse, tend la bandelette ilio-tibiale."},
-  hip_rotators:{fr:"Rotateurs profonds de la hanche",la:"Mm. piriformis, obturatorii, gemelli, quadratus femoris",reg:"Hanche & fessiers",role:"Petits muscles profonds (piriforme, obturateurs, jumeaux, carré fémoral). Rotation externe de la hanche."},
-  iliopsoas:{fr:"Ilio-psoas",la:"Musculus iliopsoas (psoas major + iliacus)",reg:"Hanche & fessiers",role:"Profond, du bassin et de la colonne au fémur. Principal fléchisseur de la hanche."},
-  rectus_femoris:{fr:"Droit fémoral (quadriceps)",la:"Musculus rectus femoris",reg:"Cuisse",role:"Chef central du quadriceps. Étend le genou et fléchit la hanche."},
-  vastus_lateralis:{fr:"Vaste latéral (quadriceps)",la:"Musculus vastus lateralis",reg:"Cuisse",role:"Face externe de la cuisse. Puissant extenseur du genou ; donne le galbe externe."},
-  vastus_medialis:{fr:"Vaste médial (quadriceps)",la:"Musculus vastus medialis",reg:"Cuisse",role:"Face interne au-dessus du genou (la « goutte »). Étend et verrouille le genou."},
-  vastus_intermedius:{fr:"Vaste intermédiaire (quadriceps)",la:"Musculus vastus intermedius",reg:"Cuisse",role:"Sous le droit fémoral. Extenseur du genou avec les autres vastes."},
-  sartorius:{fr:"Couturier (sartorius)",la:"Musculus sartorius",reg:"Cuisse",role:"Le plus long muscle du corps, en diagonale. Fléchit la hanche et le genou (position « tailleur »)."},
-  gracilis:{fr:"Gracile (droit interne)",la:"Musculus gracilis",reg:"Cuisse",role:"Face interne de la cuisse. Adduction de la cuisse et flexion du genou."},
-  pectineus:{fr:"Pectiné",la:"Musculus pectineus",reg:"Cuisse",role:"Haut de la cuisse interne. Adduction et flexion de la hanche."},
-  adductor_longus:{fr:"Long adducteur",la:"Musculus adductor longus",reg:"Cuisse",role:"Face interne. Rapproche la cuisse de l'axe du corps (adduction)."},
-  adductor_magnus:{fr:"Grand adducteur",la:"Musculus adductor magnus",reg:"Cuisse",role:"Grand muscle interne de la cuisse. Adduction puissante et extension de la hanche."},
-  adductor_brevis:{fr:"Court adducteur",la:"Musculus adductor brevis",reg:"Cuisse",role:"Adducteur profond. Rapproche la cuisse et la fléchit."},
-  biceps_femoris:{fr:"Biceps fémoral (ischio-jambier)",la:"Musculus biceps femoris",reg:"Cuisse",role:"Ischio-jambier externe. Fléchit le genou et étend la hanche."},
-  semitendinosus:{fr:"Semi-tendineux (ischio-jambier)",la:"Musculus semitendinosus",reg:"Cuisse",role:"Ischio-jambier interne. Fléchit le genou, étend la hanche, rotation interne."},
-  semimembranosus:{fr:"Semi-membraneux (ischio-jambier)",la:"Musculus semimembranosus",reg:"Cuisse",role:"Ischio-jambier interne profond. Fléchit le genou et étend la hanche."},
-  gastrocnemius:{fr:"Gastrocnémien (mollet)",la:"Musculus gastrocnemius",reg:"Jambe",role:"Le mollet visible (2 chefs). Fléchit le pied vers le bas (pointe des pieds) et le genou."},
-  soleus:{fr:"Soléaire",la:"Musculus soleus",reg:"Jambe",role:"Sous le gastrocnémien. Flexion plantaire, surtout debout — posture et endurance."},
-  plantaris:{fr:"Plantaire grêle",la:"Musculus plantaris",reg:"Jambe",role:"Petit muscle au long tendon. Assiste faiblement la flexion du pied et du genou."},
-  popliteus:{fr:"Poplité",la:"Musculus popliteus",reg:"Jambe",role:"Derrière le genou. « Déverrouille » le genou en début de flexion."},
-  tibialis_anterior:{fr:"Tibial antérieur",la:"Musculus tibialis anterior",reg:"Jambe",role:"Avant du tibia. Relève le pied (flexion dorsale) — évite de trébucher en marchant."},
-  fibularis:{fr:"Fibulaires (péroniers)",la:"Musculi fibulares (peronei)",reg:"Jambe",role:"Côté externe de la jambe. Abaissent et tournent le pied vers l'extérieur (éversion)."},
-  ext_dig_longus:{fr:"Extenseurs des orteils",la:"Musculus extensor digitorum / hallucis longus",reg:"Jambe",role:"Avant de la jambe. Relèvent les orteils et participent au relevé du pied."}
-};
-const DATA_NERVES = {
-  cerebrum:{fr:"Cerveau (hémisphères)",la:"Cerebrum",reg:"Encéphale",role:"Hémisphères cérébraux et cortex (lobes, circonvolutions). Siège de la pensée, du mouvement volontaire, des sens et du langage."},
-  deep_brain:{fr:"Noyaux profonds & limbique",la:"Nuclei basales, systema limbicum",reg:"Encéphale",role:"Noyaux gris centraux (caudé, putamen, pallidum) et structures limbiques (hippocampe, amygdale) : mouvement, mémoire, émotions."},
-  thalamus:{fr:"Thalamus & diencéphale",la:"Thalamus",reg:"Encéphale",role:"Relais central des informations sensorielles vers le cortex ; inclut les corps géniculés (vision, audition)."},
-  brainstem:{fr:"Tronc cérébral",la:"Truncus encephali",reg:"Encéphale",role:"Relie le cerveau à la moelle. Contrôle des fonctions vitales (respiration, rythme cardiaque)."},
-  ventricles:{fr:"Ventricules cérébraux",la:"Ventriculi cerebri",reg:"Encéphale",role:"Cavités du liquide céphalo-rachidien, qui protège et nourrit le système nerveux central."},
-  meninges:{fr:"Méninges (dure-mère)",la:"Dura mater",reg:"Encéphale",role:"Enveloppe protectrice externe du cerveau et de la moelle épinière."},
-  optic:{fr:"Nerf optique & voies visuelles",la:"Nervus opticus (II)",reg:"Œil & orbite",role:"2ᵉ nerf crânien : transmet l'information visuelle de la rétine au cerveau.",col:'#e6cf6a'},
-  cranial_nerves:{fr:"Nerfs crâniens de l'orbite",la:"Nn. oculomotorius, trochlearis, ophthalmicus…",reg:"Œil & orbite",role:"Nerfs des mouvements de l'œil et de la sensibilité de la face supérieure (III, IV, branches du V).",col:'#e6cf6a'},
-  eye:{fr:"Globe oculaire",la:"Bulbus oculi",reg:"Œil & orbite",role:"L'œil (cornée, cristallin, rétine, sclère, corps vitré). Capte la lumière et forme l'image.",col:'#bcd6ea'},
-  lacrimal:{fr:"Appareil lacrymal",la:"Apparatus lacrimalis",reg:"Œil & orbite",role:"Glande et voies lacrymales : produisent et évacuent les larmes.",col:'#cdd8ad'},
-  autonomic:{fr:"Parasympathique (orbite)",la:"Pars parasympathica",reg:"Œil & orbite",role:"Fibres végétatives de l'orbite (ganglion ciliaire) : contraction de la pupille, accommodation.",col:'#e6cf6a'}
-};
-
-const MUSCLE_REGIONS=['Cou','Épaule','Dos','Poitrine','Abdomen','Bras','Avant-bras','Hanche & fessiers','Cuisse','Jambe'];
-let LAYERS=[]; const layerByKey={}; const ALL={};
-
-function jitterColor(hex, slug, amp=0.1){
-  let h=0; for (const c of slug) h=(h*31+c.charCodeAt(0))&0xffff;
+function jitterColor(hex,key,amp){ let h=0; for(const c of key) h=(h*31+c.charCodeAt(0))&0xffff;
   const col=new THREE.Color(hex); const hsl={}; col.getHSL(hsl);
-  hsl.l=Math.min(0.78,Math.max(0.28, hsl.l+((h%100)/100-0.5)*amp));
-  hsl.h=(hsl.h+((h%70)/70-0.5)*0.012+1)%1;
-  return new THREE.Color().setHSL(hsl.h,hsl.s,hsl.l);
-}
-function colorFor(slug, layerKey){
-  const e=ALL[slug]; const L=layerByKey[layerKey];
-  const hex = (e&&e.col) ? e.col : layerKey==='muscles' ? (REGION_COLOR[e.reg]||'#b03a2e') : (L&&L.base) ? L.base : '#b03a2e';
-  return jitterColor(hex, slug, layerKey==='skeleton'?0.05:0.1);
-}
+  hsl.l=Math.min(0.82,Math.max(0.26, hsl.l+((h%100)/100-0.5)*amp)); hsl.h=(hsl.h+((h%70)/70-0.5)*0.01+1)%1;
+  return new THREE.Color().setHSL(hsl.h,hsl.s,hsl.l); }
 
 try {
 THREE = await import('three');
@@ -288,56 +165,37 @@ const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironm
 const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
 const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
 
-/* ---- assemblage des calques (muscles+nerveux inline + systems.json) ---- */
-const sysd = await fetch('systems.json').then(r=>r.json()).catch(()=>({layers:[],data:{}}));
-const DEFS = {
-  muscles:{key:'muscles',label:'💪 Muscles',file:'muscles.glb',base:null,regions:MUSCLE_REGIONS,data:DATA_MUSCLES},
-  nerves:{key:'nerves',label:'🧠 Nerveux',file:'nerves.glb',base:'#d7b3ab',regions:['Encéphale','Œil & orbite'],data:DATA_NERVES}
-};
-for(const L of sysd.layers){ const data={}; for(const k in sysd.data) if(sysd.data[k].layer===L.key) data[k]=sysd.data[k];
-  DEFS[L.key]={key:L.key,label:L.label,file:L.file,base:L.base,regions:L.regions,data}; }
-const ORDER=['muscles','skeleton','nerves','cardio','respiratory','digestive','urinary','reproductive','endocrine','lymphatic','integumentary'];
-LAYERS = ORDER.filter(k=>DEFS[k]).map((k,i)=>({...DEFS[k], visible:i===0, loaded:false, group:null}));
-for(const L of LAYERS){ layerByKey[L.key]=L; for(const s in L.data) ALL[s]={...L.data[s], layer:L.key}; }
-const layersEl=document.getElementById('layers'); layersEl.innerHTML='';
-for(const L of LAYERS){ const b=document.createElement('button'); b.className='lyr'+(L.visible?' on':'');
-  b.dataset.layer=L.key; b.textContent=L.label; b.addEventListener('click',()=>onLayerClick(L,b)); layersEl.appendChild(b); }
+const sysd = await fetch('systems.json').then(r=>r.json());
+const ALL = sysd.data;
+const REGORDER = sysd.regionOrder || ['Tête','Cou','Thorax','Membre supérieur','Main','Abdomen','Bassin','Cuisse','Jambe','Pied'];
+const LAYERS = sysd.layers.map((L,i)=>({...L, visible:i===0, loaded:false, group:null, opacity:1}));
+const layerByKey={}; for(const L of LAYERS) layerByKey[L.key]=L;
+function colorFor(id){ const e=ALL[id]; const L=layerByKey[e.layer]; return jitterColor(L.base||'#b03a2e', id, L.key==='skeletal'?0.05:0.12); }
 
-const app=document.getElementById('app');
-const scene=new THREE.Scene();
+/* ---- scène ---- */
+const app=document.getElementById('app'); const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 200);
 const renderer=new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=!MOBILE; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
-renderer.domElement.style.touchAction='none';
-app.appendChild(renderer.domElement);
-
-const pmrem=new THREE.PMREMGenerator(renderer);
-scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
-
+renderer.domElement.style.touchAction='none'; app.appendChild(renderer.domElement);
+const pmrem=new THREE.PMREMGenerator(renderer); scene.environment=pmrem.fromScene(new RoomEnvironment(),0.04).texture;
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(80,32,32),
   new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,
     uniforms:{top:{value:new THREE.Color('#1d2c4d')},bot:{value:new THREE.Color('#080c17')}},
-    vertexShader:`varying vec3 vP; void main(){vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-    fragmentShader:`varying vec3 vP; uniform vec3 top; uniform vec3 bot; void main(){float h=clamp(normalize(vP).y*0.5+0.5,0.0,1.0); gl_FragColor=vec4(mix(bot,top,pow(h,1.3)),1.0);}`})));
-
-const controls=new OrbitControls(camera, renderer.domElement);
-controls.enableDamping=true; controls.dampingFactor=0.09;
-controls.minDistance=3; controls.maxDistance=32; controls.rotateSpeed=MOBILE?0.7:1.0;
-controls.enablePan=!MOBILE; controls.touches={ONE:THREE.TOUCH.ROTATE, TWO:THREE.TOUCH.DOLLY_PAN};
-
+    vertexShader:`varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`varying vec3 vP;uniform vec3 top;uniform vec3 bot;void main(){float h=clamp(normalize(vP).y*0.5+0.5,0.0,1.0);gl_FragColor=vec4(mix(bot,top,pow(h,1.3)),1.0);}`})));
+const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=0.09;
+controls.minDistance=3; controls.maxDistance=34; controls.rotateSpeed=MOBILE?0.7:1.0; controls.enablePan=!MOBILE;
+controls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};
 scene.add(new THREE.HemisphereLight(0xdfeaff,0x141422,MOBILE?0.5:0.4));
 const key=new THREE.DirectionalLight(0xfff2e6,1.7); key.position.set(6,12,8); key.castShadow=!MOBILE;
-if(!MOBILE){key.shadow.mapSize.set(2048,2048); key.shadow.bias=-0.0004; Object.assign(key.shadow.camera,{near:1,far:55,left:-8,right:8,top:15,bottom:-4});}
+if(!MOBILE){key.shadow.mapSize.set(2048,2048); key.shadow.bias=-0.0004; Object.assign(key.shadow.camera,{near:1,far:60,left:-9,right:9,top:17,bottom:-5});}
 scene.add(key);
 const rim=new THREE.DirectionalLight(0x6f9bff,0.7); rim.position.set(-7,5,-6); scene.add(rim);
-
 const ring=new THREE.Mesh(new THREE.RingGeometry(2.9,2.96,80), new THREE.MeshBasicMaterial({color:0x3a4a66,side:THREE.DoubleSide}));
-ring.rotation.x=-Math.PI/2; ring.position.y=-0.04; scene.add(ring);
-if(!MOBILE){ const sc=new THREE.Mesh(new THREE.CircleGeometry(7,64), new THREE.ShadowMaterial({opacity:0.36}));
-  sc.rotation.x=-Math.PI/2; sc.position.y=-0.04; sc.receiveShadow=true; scene.add(sc); }
+ring.rotation.x=-Math.PI/2; ring.position.y=-0.05; scene.add(ring);
 
 let composer=null, outline=null;
 if(!MOBILE){
@@ -347,25 +205,21 @@ if(!MOBILE){
   const {OutputPass}=await import('three/addons/postprocessing/OutputPass.js');
   composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,camera));
   outline=new OutlinePass(new THREE.Vector2(innerWidth,innerHeight),scene,camera);
-  outline.edgeStrength=6; outline.edgeGlow=0.5; outline.edgeThickness=1.3;
-  outline.visibleEdgeColor.set('#ffc37a'); outline.hiddenEdgeColor.set('#9a4e1c'); composer.addPass(outline);
-  composer.addPass(new OutputPass());
+  outline.edgeStrength=6; outline.edgeGlow=0.5; outline.edgeThickness=1.3; outline.visibleEdgeColor.set('#ffc37a'); outline.hiddenEdgeColor.set('#9a4e1c');
+  composer.addPass(outline); composer.addPass(new OutputPass());
 }
-function renderFrame(){ composer ? composer.render() : renderer.render(scene,camera); }
+function renderFrame(){ composer?composer.render():renderer.render(scene,camera); }
 
-/* ============== rig partagé + chargement calques ============== */
+/* ---- rig + chargement ---- */
 const rig=new THREE.Group(); rig.rotation.x=-Math.PI/2; scene.add(rig);
 let rigReady=false, modelH=7;
-const meshesBySlug={}; const pickables=[];
-
-const draco=new DRACOLoader();
-draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/');
+const meshesById={}; const pickables=[];
+const draco=new DRACOLoader(); draco.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/gltf/');
 const loader=new GLTFLoader(); loader.setDRACOLoader(draco);
 
-function makeMat(layerKey, color){
-  if(layerKey==='skeleton') return new THREE.MeshPhysicalMaterial({color,roughness:0.62,metalness:0.0,sheen:0.25,sheenColor:new THREE.Color(0xffffff),clearcoat:0.0,envMapIntensity:0.75,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
-  if(layerKey==='nerves')   return new THREE.MeshPhysicalMaterial({color,roughness:0.42,metalness:0.0,sheen:0.4,sheenColor:new THREE.Color(0xfff0e0),clearcoat:0.15,clearcoatRoughness:0.5,envMapIntensity:0.85,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
-  return new THREE.MeshPhysicalMaterial({color,roughness:0.5,metalness:0.0,clearcoat:MOBILE?0:0.2,clearcoatRoughness:0.5,sheen:0.55,sheenColor:new THREE.Color(0xffd9c2),sheenRoughness:0.7,envMapIntensity:0.85,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
+function makeMat(L,color){
+  if(L.key==='skeletal') return new THREE.MeshPhysicalMaterial({color,roughness:0.62,metalness:0,sheen:0.25,sheenColor:new THREE.Color(0xffffff),envMapIntensity:0.75,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
+  return new THREE.MeshPhysicalMaterial({color,roughness:0.5,metalness:0,clearcoat:MOBILE?0:0.15,clearcoatRoughness:0.5,sheen:0.5,sheenColor:new THREE.Color(0xffd9c2),sheenRoughness:0.7,envMapIntensity:0.85,emissive:color.clone(),emissiveIntensity:0,transparent:true,opacity:1});
 }
 function fitRig(object){
   rig.scale.setScalar(1); rig.position.set(0,0,0); rig.updateMatrixWorld(true);
@@ -373,63 +227,54 @@ function fitRig(object){
   const s=7/sz.y; rig.scale.setScalar(s); rig.updateMatrixWorld(true);
   b=new THREE.Box3().setFromObject(object); const c=b.getCenter(new THREE.Vector3());
   rig.position.x-=c.x; rig.position.z-=c.z; rig.position.y-=b.min.y; rig.updateMatrixWorld(true);
-  modelH=7; rigReady=true;
+  modelH=sz.y*s; rigReady=true;
 }
-function buildLayerMeshes(L, root){
+function buildLayerMeshes(L,root){
   root.visible=L.visible;
-  root.traverse(o=>{
-    if(!o.isMesh) return;
-    const slug=(o.name||'').split('__')[0]; const e=ALL[slug]; if(!e) return;
-    o.geometry.computeVertexNormals();
-    o.material=makeMat(L.key, colorFor(slug,L.key));
-    o.userData.baseEmissive=o.material.emissive.clone();
-    o.castShadow=!MOBILE; o.userData.slug=slug;
-    (meshesBySlug[slug]=meshesBySlug[slug]||[]).push(o);
-  });
+  root.traverse(o=>{ if(!o.isMesh) return; const id=(o.name||'').split('__')[0]; if(!ALL[id]) return;
+    o.geometry.computeVertexNormals(); const col=colorFor(id);
+    o.material=makeMat(L,col); o.userData.baseEmissive=o.material.emissive.clone(); o.userData.id=id; o.castShadow=!MOBILE;
+    (meshesById[id]=meshesById[id]||[]).push(o); });
 }
-function updatePickables(){ pickables.length=0;
-  for(const slug in meshesBySlug){ if(layerByKey[ALL[slug].layer].visible) pickables.push(...meshesBySlug[slug]); } }
-
 async function ensureLayer(L){
-  if(L.loaded) return;
-  const first=!rigReady;
-  let gltf;
-  try{
-    gltf=await loader.loadAsync(L.file,(ev)=>{ if(first&&ev.total){const p=Math.round(ev.loaded/ev.total*100);
-      const bd=document.querySelector('#bar > div'); if(bd)bd.style.width=p+'%'; loadMsg(`Chargement du modèle anatomique… ${p}%`);} });
-  }catch(e){
-    if(first) fail(location.protocol==='file:'
-      ? `Le fichier <code>${L.file}</code> ne peut pas être lu en local (<code>file://</code>).<br><br>➜ Lance <code>python3 -m http.server</code> puis ouvre <code>http://localhost:8000</code>, ou ouvre le site déployé.`
-      : `Le fichier <code>${L.file}</code> est introuvable.`);
-    throw e;
-  }
+  if(L.loaded) return; const first=!rigReady; let gltf;
+  try{ gltf=await loader.loadAsync(L.file,(ev)=>{ if(first&&ev.total){const p=Math.round(ev.loaded/ev.total*100);
+    const bd=document.querySelector('#bar>div'); if(bd)bd.style.width=p+'%'; loadMsg(`Chargement du modèle… ${p}%`);} }); }
+  catch(e){ if(first) fail(location.protocol==='file:'
+    ? `<code>${L.file}</code> illisible en local (file://).<br>➜ <code>python3 -m http.server</code> puis http://localhost:8000`
+    : `<code>${L.file}</code> introuvable.`); throw e; }
   L.loaded=true; L.group=gltf.scene; rig.add(gltf.scene);
   if(first) fitRig(gltf.scene);
-  buildLayerMeshes(L, gltf.scene);
+  buildLayerMeshes(L,gltf.scene);
 }
 
-/* ============== interaction ============== */
+/* ---- filtres / visibilité ---- */
+let activeRegion=null, xray=false;
+function applyFilter(){
+  for(const id in meshesById){ const ok=!activeRegion || ALL[id].reg===activeRegion;
+    for(const m of meshesById[id]) m.visible=ok; }
+  for(const L of LAYERS) if(L.group) L.group.visible=L.visible;
+  updatePickables();
+}
+function updatePickables(){ pickables.length=0;
+  for(const id in meshesById){ const L=layerByKey[ALL[id].layer]; if(!L.visible) continue;
+    if(activeRegion && ALL[id].reg!==activeRegion) continue; pickables.push(...meshesById[id]); } }
+
+/* ---- interaction + surbrillance ---- */
 const raycaster=new THREE.Raycaster(); const pointer=new THREE.Vector2();
-let hoveredId=null, selectedId=null; let xray=false;
-const HL=new THREE.Color('#ffd27a');          // teinte de surbrillance
+let hoveredId=null, selectedId=null; const HL=new THREE.Color('#ffd27a');
 function refresh(){
-  for(const slug in meshesBySlug){
-    const vis=layerByKey[ALL[slug].layer].visible;
-    const sel=slug===selectedId, hov=slug===hoveredId;
-    for(const m of meshesBySlug[slug]){
-      // surbrillance : teinte vive sur la sélection, léger éclat au survol
+  for(const id in meshesById){ const L=layerByKey[ALL[id].layer]; const sel=id===selectedId, hov=id===hoveredId;
+    for(const m of meshesById[id]){
       if(sel){ m.material.emissive.copy(HL); m.material.emissiveIntensity=0.95; }
       else { m.material.emissive.copy(m.userData.baseEmissive); m.material.emissiveIntensity=hov?0.34:0.0; }
-      // opacité : pleine par défaut ; n'est réduite QUE par le mode Transparence
-      const op = (xray && vis) ? ((sel||hov)?1.0:0.18) : 1.0;
-      m.material.opacity=op; m.material.depthWrite = op>=0.99;
-    }
-  }
-  if(outline) outline.selectedObjects = selectedId&&meshesBySlug[selectedId] ? meshesBySlug[selectedId] : [];
+      let op = sel?1.0 : (xray ? (hov?L.opacity:Math.min(L.opacity,0.16)) : L.opacity);
+      m.material.opacity=op; m.material.transparent=op<0.999; m.material.depthWrite=op>=0.999;
+    } }
+  if(outline) outline.selectedObjects = selectedId&&meshesById[selectedId] ? meshesById[selectedId] : [];
 }
 function pickAt(cx,cy){ pointer.x=(cx/innerWidth)*2-1; pointer.y=-(cy/innerHeight)*2+1;
-  raycaster.setFromCamera(pointer,camera); const h=raycaster.intersectObjects(pickables,false);
-  return h.length?h[0].object.userData.slug:null; }
+  raycaster.setFromCamera(pointer,camera); const h=raycaster.intersectObjects(pickables,false); return h.length?h[0].object.userData.id:null; }
 if(!MOBILE) renderer.domElement.addEventListener('pointermove',(e)=>{ const id=pickAt(e.clientX,e.clientY);
   if(id!==hoveredId){hoveredId=id; refresh(); renderer.domElement.style.cursor=id?'pointer':'grab';} });
 let dx=0,dy=0,moved=false; const TAP=MOBILE?11:5;
@@ -438,95 +283,132 @@ renderer.domElement.addEventListener('pointermove',(e)=>{ if(Math.hypot(e.client
 renderer.domElement.addEventListener('pointerup',(e)=>{ if(!moved) select(pickAt(e.clientX,e.clientY)); });
 
 const infoEl=document.getElementById('info'), listEl=document.getElementById('list');
-function select(slug){ selectedId=slug; refresh(); updateInfo(slug); markList(slug);
-  if(MOBILE){ if(slug){infoEl.classList.add('open'); listEl.classList.remove('open');} else infoEl.classList.remove('open'); } }
+function select(id){ selectedId=id; refresh(); updateInfo(id); markList(id);
+  if(MOBILE){ if(id){infoEl.classList.add('open'); listEl.classList.remove('open');} else infoEl.classList.remove('open'); } }
 
-/* ============== UI ============== */
+/* ---- UI : info ---- */
 const infoBody=document.getElementById('info-body');
-function updateInfo(slug){ const m=slug&&ALL[slug];
-  if(!m){ infoBody.innerHTML=`<p class="hint">Touche une structure pour afficher son nom et son rôle.</p>`; return; }
+function updateInfo(id){ const m=id&&ALL[id];
+  if(!m){ infoBody.innerHTML=`<p class="hint">Touche une structure pour afficher son nom et son nom scientifique.</p>`; return; }
   infoBody.innerHTML=`<h2>${m.fr}</h2><div class="latin">${m.la}</div>
-    <div class="tags"><span class="tag">${layerByKey[m.layer].label}</span><span class="tag">${m.reg}</span>${m.approx?'<span class="tag approx">forme approximée</span>':''}</div>
-    <div class="role-label">Rôle</div><div class="role">${m.role}</div>`;
+    <div class="tags"><span class="tag">${layerByKey[m.layer].label}</span><span class="tag">${m.reg}</span></div>`;
 }
-const listItems=document.getElementById('list-items');
+
+/* ---- UI : barres de filtres ---- */
+const layersEl=document.getElementById('layers');
+const allBtn=document.createElement('button'); allBtn.className='chip allbtn'; allBtn.textContent='✦ Tout';
+allBtn.addEventListener('click',toggleAll); layersEl.appendChild(allBtn);
+const layerBtns={};
+for(const L of LAYERS){ const b=document.createElement('button'); b.className='chip'+(L.visible?' on':''); b.textContent=L.label;
+  b.addEventListener('click',()=>toggleLayer(L,b)); layersEl.appendChild(b); layerBtns[L.key]=b; }
+
+const regionEl=document.getElementById('regionbar');
+function mkRegionChip(label,val){ const b=document.createElement('button'); b.className='chip'+(activeRegion===val?' on':'');
+  b.textContent=label; b.dataset.region=val===null?'':val; b.addEventListener('click',()=>setRegion(val)); return b; }
+regionEl.appendChild(mkRegionChip('Tout le corps',null));
+for(const r of REGORDER) regionEl.appendChild(mkRegionChip(r,r));
+function setRegion(val){ activeRegion=val;
+  regionEl.querySelectorAll('.chip').forEach(c=>{ const cv=c.dataset.region===''?null:c.dataset.region; c.classList.toggle('on',cv===val); });
+  applyFilter(); refresh(); buildList(document.getElementById('search').value);
+}
+
+async function toggleLayer(L,btn){ const on=!L.visible;
+  if(on && !L.loaded){ btn.classList.add('loading'); showToast(`Chargement : ${L.label}…`);
+    try{ await ensureLayer(L); }catch{ btn.classList.remove('loading'); showToast('Échec.'); setTimeout(hideToast,1500); return; }
+    btn.classList.remove('loading'); hideToast(); }
+  L.visible=on; if(L.group) L.group.visible=on; btn.classList.toggle('on',on);
+  if(selectedId && !layerByKey[ALL[selectedId].layer].visible) select(null);
+  applyFilter(); refresh(); buildList(document.getElementById('search').value);
+}
+let allOn=false;
+async function toggleAll(){ allOn=!allOn; allBtn.classList.toggle('on',allOn);
+  if(allOn){ showToast('Chargement de tous les systèmes…');
+    for(const L of LAYERS){ if(!L.loaded){ try{ await ensureLayer(L); }catch{} } L.visible=true; if(L.group)L.group.visible=true; layerBtns[L.key].classList.add('on'); }
+    hideToast(); }
+  else { for(const L of LAYERS){ L.visible=(L.key==='muscular'); if(L.group)L.group.visible=L.visible; layerBtns[L.key].classList.toggle('on',L.visible); } }
+  applyFilter(); refresh(); buildList(document.getElementById('search').value);
+}
+
+/* ---- UI : liste (groupée + recherche globale) ---- */
+const listItems=document.getElementById('list-items'); const CAP=240;
+function mkItem(id){ const m=ALL[id]; const col='#'+colorFor(id).getHexString();
+  const b=document.createElement('button'); b.className='mbtn'+(id===selectedId?' active':''); b.dataset.id=id;
+  b.innerHTML=`<span class="dot" style="background:${col}"></span><span class="nm">${m.fr}<span class="lt">${m.la}</span></span>`;
+  b.addEventListener('click',()=>onItemClick(id));
+  if(!MOBILE){ b.addEventListener('mouseenter',()=>{hoveredId=id;refresh();}); b.addEventListener('mouseleave',()=>{hoveredId=null;refresh();}); }
+  return b; }
+async function onItemClick(id){ const L=layerByKey[ALL[id].layer];
+  if(!L.visible){ if(!L.loaded){ showToast(`Chargement : ${L.label}…`); try{await ensureLayer(L);}catch{} hideToast(); }
+    L.visible=true; if(L.group)L.group.visible=true; layerBtns[L.key].classList.add('on'); applyFilter(); }
+  select(id); if(MOBILE) listEl.classList.remove('open'); }
 function buildList(filter=''){
-  const f=filter.trim().toLowerCase(); listItems.innerHTML='';
-  for(const L of LAYERS){
-    if(!L.visible||!L.loaded) continue;
-    const inLayer = Object.keys(ALL).filter(s=>ALL[s].layer===L.key && meshesBySlug[s] &&
-      (!f || ALL[s].fr.toLowerCase().includes(f) || ALL[s].la.toLowerCase().includes(f)));
-    if(!inLayer.length) continue;
-    const lh=document.createElement('div'); lh.className='lyr-h'; lh.textContent=L.label; listItems.appendChild(lh);
-    for(const region of L.regions){
-      const slugs=inLayer.filter(s=>ALL[s].reg===region);
-      if(!slugs.length) continue;
-      const rh=document.createElement('div'); rh.className='reg-h'; rh.textContent=region; listItems.appendChild(rh);
-      for(const s of slugs){ const m=ALL[s]; const col='#'+colorFor(s,L.key).getHexString();
-        const b=document.createElement('button'); b.className='mbtn'+(s===selectedId?' active':''); b.dataset.id=s;
-        b.innerHTML=`<span class="dot" style="background:${col}"></span><span class="nm">${m.fr}<span class="lt">${m.la}</span></span>`;
-        b.addEventListener('click',()=>{ select(s); if(MOBILE) listEl.classList.remove('open'); });
-        if(!MOBILE){ b.addEventListener('mouseenter',()=>{hoveredId=s;refresh();}); b.addEventListener('mouseleave',()=>{hoveredId=null;refresh();}); }
-        listItems.appendChild(b);
-      }
-    }
+  const f=(filter||'').trim().toLowerCase(); listItems.innerHTML='';
+  if(f){ // recherche GLOBALE (tous systèmes, même non chargés)
+    let n=0; const matches=[];
+    for(const id in ALL){ const m=ALL[id]; if(m.fr.toLowerCase().includes(f)||m.la.toLowerCase().includes(f)){ matches.push(id); if(matches.length>CAP+1) break; } }
+    if(!matches.length){ listItems.innerHTML=`<div class="more">Aucun résultat</div>`; return; }
+    const byL={}; for(const id of matches.slice(0,CAP)){ (byL[ALL[id].layer]=byL[ALL[id].layer]||[]).push(id); }
+    for(const L of LAYERS){ if(!byL[L.key]) continue; const h=document.createElement('div'); h.className='lyr-h'; h.innerHTML=`<span class="t">${L.label}</span>`; listItems.appendChild(h);
+      for(const id of byL[L.key]) listItems.appendChild(mkItem(id)); }
+    if(matches.length>CAP) listItems.appendChild(Object.assign(document.createElement('div'),{className:'more',textContent:`… affine la recherche (plus de ${CAP} résultats)`}));
+    return;
   }
-  if(!listItems.children.length) listItems.innerHTML=`<div class="reg-h">Aucun résultat</div>`;
+  // liste normale : systèmes visibles, groupés par région
+  let any=false;
+  for(const L of LAYERS){ if(!L.visible||!L.loaded) continue;
+    const ids=Object.keys(ALL).filter(id=>ALL[id].layer===L.key && meshesById[id] && (!activeRegion||ALL[id].reg===activeRegion));
+    if(!ids.length) continue; any=true;
+    const h=document.createElement('div'); h.className='lyr-h';
+    h.innerHTML=`<span class="t">${L.label}</span>`;
+    const sl=document.createElement('input'); sl.type='range'; sl.min=15; sl.max=100; sl.value=Math.round(L.opacity*100); sl.title='Opacité';
+    sl.addEventListener('input',()=>{ L.opacity=sl.value/100; refresh(); }); h.appendChild(sl);
+    listItems.appendChild(h);
+    let shown=0;
+    for(const r of REGORDER){ const rids=ids.filter(id=>ALL[id].reg===r); if(!rids.length) continue;
+      const rh=document.createElement('div'); rh.className='reg-h'; rh.textContent=r; listItems.appendChild(rh);
+      for(const id of rids){ if(shown>=CAP){ break; } listItems.appendChild(mkItem(id)); shown++; }
+      if(shown>=CAP) break;
+    }
+    if(ids.length>CAP) listItems.appendChild(Object.assign(document.createElement('div'),{className:'more',textContent:`… ${ids.length-CAP} autres (filtre région ou recherche)`}));
+  }
+  if(!any) listItems.innerHTML=`<div class="more">Active un système en haut pour lister ses structures.</div>`;
 }
-function markList(slug){ document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('active',b.dataset.id===slug)); }
+function markList(id){ document.querySelectorAll('.mbtn').forEach(b=>b.classList.toggle('active',b.dataset.id===id)); }
 document.getElementById('search').addEventListener('input',(e)=>buildList(e.target.value));
 document.getElementById('list-toggle').addEventListener('click',()=>listEl.classList.toggle('open'));
 document.getElementById('list-close').addEventListener('click',()=>listEl.classList.remove('open'));
 document.getElementById('info-close').addEventListener('click',()=>{ infoEl.classList.remove('open'); select(null); });
 
-/* toast */
-let toastT=null; const toastEl=document.getElementById('toast');
-function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); if(toastT)clearTimeout(toastT); }
+/* ---- toast ---- */
+const toastEl=document.getElementById('toast');
+function showToast(m){ toastEl.textContent=m; toastEl.classList.add('show'); }
 function hideToast(){ toastEl.classList.remove('show'); }
 
-/* calques (boutons générés dynamiquement après le fetch systems.json) */
-async function onLayerClick(L, btn){
-  const turningOn=!L.visible;
-  if(turningOn && !L.loaded){
-    btn.classList.add('loading'); showToast(`Chargement : ${L.label}…`);
-    try{ await ensureLayer(L); } catch{ btn.classList.remove('loading'); showToast('Échec du chargement.'); setTimeout(hideToast,1600); return; }
-    btn.classList.remove('loading'); hideToast();
-  }
-  L.visible=turningOn; if(L.group) L.group.visible=L.visible;
-  btn.classList.toggle('on',L.visible);
-  if(selectedId && !layerByKey[ALL[selectedId].layer].visible) select(null);
-  updatePickables(); refresh(); buildList(document.getElementById('search').value);
-}
-
-/* contrôles */
+/* ---- contrôles ---- */
 let autoRotate=false; const bRot=document.getElementById('btn-rotate');
 bRot.addEventListener('click',()=>{autoRotate=!autoRotate;controls.autoRotate=autoRotate;controls.autoRotateSpeed=1.2;bRot.classList.toggle('on',autoRotate);});
-function setView(which){ const t=controls.target, d=MOBILE?10:9;
-  if(which==='front') camera.position.set(0,t.y,d);
-  else if(which==='back') camera.position.set(0,t.y,-d);
-  else camera.position.set(d*0.42,t.y+1.4,d*0.92);
+function setView(w){ const t=controls.target, d=MOBILE?10:9;
+  if(w==='front') camera.position.set(0,t.y,d); else if(w==='back') camera.position.set(0,t.y,-d); else camera.position.set(d*0.42,t.y+1.4,d*0.92);
   controls.update(); }
 document.getElementById('btn-front').addEventListener('click',()=>setView('front'));
 document.getElementById('btn-back').addEventListener('click',()=>setView('back'));
 document.getElementById('btn-reset').addEventListener('click',()=>setView('reset'));
-const bX=document.getElementById('btn-xray'); bX.addEventListener('click',()=>{xray=!xray;bX.classList.toggle('on',xray);refresh();});
 
-/* boucle + resize */
-function resize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight); if(composer){composer.setSize(innerWidth,innerHeight); outline.setSize(innerWidth,innerHeight);} }
+/* ---- boucle ---- */
+function resize(){ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight);
+  if(composer){composer.setSize(innerWidth,innerHeight); outline.setSize(innerWidth,innerHeight);} }
 addEventListener('resize',resize); addEventListener('orientationchange',()=>setTimeout(resize,300));
 function animate(){ requestAnimationFrame(animate); controls.update(); renderFrame(); }
 
-/* ============== init ============== */
-await ensureLayer(LAYERS[0]);          // muscles (overlay + progression)
-updatePickables();
+/* ---- init ---- */
+await ensureLayer(LAYERS[0]);
+applyFilter();
 controls.target.set(0, modelH*0.52, 0); setView('reset');
 buildList();
-const l=document.getElementById('loading');
-if(l){ l.style.transition='opacity .45s'; l.style.opacity='0'; setTimeout(()=>l.remove(),480); }
+const l=document.getElementById('loading'); if(l){ l.style.transition='opacity .45s'; l.style.opacity='0'; setTimeout(()=>l.remove(),480); }
 animate();
 
-} catch (err) { fail((err&&err.message)?err.message:String(err)); console.error(err); }
+} catch(err){ fail((err&&err.message)?err.message:String(err)); console.error(err); }
 </script>
 </body>
 </html>
