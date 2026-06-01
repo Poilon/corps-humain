@@ -37,7 +37,9 @@
 
   /* sélecteur de calques */
   #layers { position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:15;
-    display:flex; gap:5px; padding:5px; border-radius:999px; max-width:calc(100vw - 24px); }
+    display:flex; gap:5px; padding:5px; border-radius:999px; max-width:calc(100vw - 24px);
+    flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+  #layers::-webkit-scrollbar { display:none; }
   .lyr { cursor:pointer; border:0; background:transparent; color:var(--muted); padding:9px 15px;
     border-radius:999px; font-size:13px; font-weight:650; white-space:nowrap; transition:.12s; }
   .lyr.on { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#1a1207; }
@@ -147,11 +149,7 @@
 
   <div id="title"><h1>🫀 Corps humain 3D</h1><p>Tourne, zoome, et touche une structure</p></div>
 
-  <div id="layers" class="glass">
-    <button class="lyr on" data-layer="muscles">💪 Muscles</button>
-    <button class="lyr" data-layer="skeleton">🦴 Squelette</button>
-    <button class="lyr" data-layer="nerves">🧠 Nerveux</button>
-  </div>
+  <div id="layers" class="glass"></div>
   <div id="toast" class="glass"></div>
 
   <button id="list-toggle" class="glass">☰ Liste</button>
@@ -253,36 +251,6 @@ const DATA_MUSCLES = {
   fibularis:{fr:"Fibulaires (péroniers)",la:"Musculi fibulares (peronei)",reg:"Jambe",role:"Côté externe de la jambe. Abaissent et tournent le pied vers l'extérieur (éversion)."},
   ext_dig_longus:{fr:"Extenseurs des orteils",la:"Musculus extensor digitorum / hallucis longus",reg:"Jambe",role:"Avant de la jambe. Relèvent les orteils et participent au relevé du pied."}
 };
-const DATA_BONES = {
-  cranium:{fr:"Crâne (boîte crânienne)",la:"Cranium / neurocranium",reg:"Tête",role:"Os de la voûte et de la base (frontal, pariétaux, temporaux, occipital, sphénoïde). Protège le cerveau."},
-  skull_face:{fr:"Os de la face",la:"Viscerocranium",reg:"Tête",role:"Maxillaires, os zygomatiques, nasaux, palatins, vomer… Forment la face et les orbites."},
-  mandible:{fr:"Mandibule",la:"Mandibula",reg:"Tête",role:"Mâchoire inférieure, seul os mobile du crâne. Permet la mastication."},
-  hyoid:{fr:"Os hyoïde",la:"Os hyoideum",reg:"Tête",role:"Petit os en U du cou ; soutient la langue et le larynx, sans articulation avec un autre os."},
-  vert_cervical:{fr:"Vertèbres cervicales",la:"Vertebrae cervicales (C1–C7)",reg:"Colonne",role:"Les 7 vertèbres du cou, très mobiles ; l'atlas et l'axis portent et orientent la tête."},
-  vert_thoracic:{fr:"Vertèbres thoraciques",la:"Vertebrae thoracicae (T1–T12)",reg:"Colonne",role:"Les 12 vertèbres du thorax, articulées avec les côtes."},
-  vert_lumbar:{fr:"Vertèbres lombaires",la:"Vertebrae lumbales (L1–L5)",reg:"Colonne",role:"Les 5 vertèbres massives du bas du dos ; supportent le poids du tronc."},
-  sacrum:{fr:"Sacrum",la:"Os sacrum",reg:"Colonne",role:"Os triangulaire de vertèbres soudées, relie la colonne au bassin."},
-  disks:{fr:"Disques intervertébraux",la:"Disci intervertebrales",reg:"Colonne",role:"Coussinets de cartilage entre les vertèbres ; amortissent les chocs et permettent la souplesse."},
-  ribs:{fr:"Côtes",la:"Costae",reg:"Thorax",role:"12 paires d'os courbes formant la cage thoracique ; protègent cœur et poumons."},
-  costal_cartilage:{fr:"Cartilages costaux",la:"Cartilagines costales",reg:"Thorax",role:"Relient les côtes au sternum ; donnent de l'élasticité à la cage (respiration)."},
-  sternum:{fr:"Sternum",la:"Sternum",reg:"Thorax",role:"Os plat central de la poitrine (manubrium, corps, xiphoïde) ; articule côtes et clavicules."},
-  clavicle:{fr:"Clavicule",la:"Clavicula",reg:"Membre supérieur",role:"Relie le sternum à l'omoplate ; maintient l'épaule écartée du thorax."},
-  scapula:{fr:"Omoplate (scapula)",la:"Scapula",reg:"Membre supérieur",role:"Os plat triangulaire de l'épaule ; reçoit la tête de l'humérus et porte de nombreux muscles."},
-  humerus:{fr:"Humérus",la:"Humerus",reg:"Membre supérieur",role:"Os du bras, de l'épaule au coude."},
-  radius:{fr:"Radius",la:"Radius",reg:"Membre supérieur",role:"Os externe de l'avant-bras (côté pouce) ; pivote pour la pronation/supination."},
-  ulna:{fr:"Ulna (cubitus)",la:"Ulna",reg:"Membre supérieur",role:"Os interne de l'avant-bras ; forme la pointe du coude (olécrâne)."},
-  carpus:{fr:"Os du carpe (poignet)",la:"Ossa carpi",reg:"Main",role:"Les 8 petits os du poignet, disposés en deux rangées."},
-  metacarpals:{fr:"Métacarpiens",la:"Ossa metacarpi",reg:"Main",role:"Les 5 os de la paume de la main."},
-  phalanges_hand:{fr:"Phalanges (doigts)",la:"Phalanges manus",reg:"Main",role:"Les os des doigts : 3 par doigt, 2 pour le pouce."},
-  pelvis:{fr:"Os coxal (bassin)",la:"Os coxae",reg:"Bassin",role:"Os de la hanche (ilion, ischion, pubis soudés) ; supporte le tronc et relie les jambes."},
-  femur:{fr:"Fémur",la:"Femur",reg:"Membre inférieur",role:"Os de la cuisse, le plus long et le plus solide du corps."},
-  patella:{fr:"Rotule",la:"Patella",reg:"Membre inférieur",role:"Os du genou (sésamoïde) dans le tendon du quadriceps ; protège l'articulation."},
-  tibia:{fr:"Tibia",la:"Tibia",reg:"Membre inférieur",role:"Gros os porteur de la jambe ; supporte le poids du corps."},
-  fibula:{fr:"Fibula (péroné)",la:"Fibula",reg:"Membre inférieur",role:"Os fin externe de la jambe ; stabilise la cheville, peu porteur."},
-  tarsus:{fr:"Os du tarse (cheville)",la:"Ossa tarsi",reg:"Pied",role:"Les os de l'arrière-pied (talus, calcanéus, naviculaire…) ; forment le talon et la cheville."},
-  metatarsals:{fr:"Métatarsiens",la:"Ossa metatarsi",reg:"Pied",role:"Les 5 os longs du milieu du pied."},
-  phalanges_foot:{fr:"Phalanges (orteils)",la:"Phalanges pedis",reg:"Pied",role:"Les os des orteils."}
-};
 const DATA_NERVES = {
   cerebrum:{fr:"Cerveau (hémisphères)",la:"Cerebrum",reg:"Encéphale",role:"Hémisphères cérébraux et cortex (lobes, circonvolutions). Siège de la pensée, du mouvement volontaire, des sens et du langage."},
   deep_brain:{fr:"Noyaux profonds & limbique",la:"Nuclei basales, systema limbicum",reg:"Encéphale",role:"Noyaux gris centraux (caudé, putamen, pallidum) et structures limbiques (hippocampe, amygdale) : mouvement, mémoire, émotions."},
@@ -297,13 +265,8 @@ const DATA_NERVES = {
   autonomic:{fr:"Parasympathique (orbite)",la:"Pars parasympathica",reg:"Œil & orbite",role:"Fibres végétatives de l'orbite (ganglion ciliaire) : contraction de la pupille, accommodation.",col:'#e6cf6a'}
 };
 
-const LAYERS = [
-  {key:'muscles',  file:'muscles.glb',  data:DATA_MUSCLES, label:'Muscles',  regions:['Cou','Épaule','Dos','Poitrine','Abdomen','Bras','Avant-bras','Hanche & fessiers','Cuisse','Jambe'], visible:true,  loaded:false, group:null},
-  {key:'skeleton', file:'skeleton.glb', data:DATA_BONES,   label:'Squelette', regions:['Tête','Colonne','Thorax','Membre supérieur','Main','Bassin','Membre inférieur','Pied'], visible:false, loaded:false, group:null},
-  {key:'nerves',   file:'nerves.glb',   data:DATA_NERVES,  label:'Système nerveux', regions:['Encéphale','Œil & orbite'], visible:false, loaded:false, group:null}
-];
-const layerByKey={}; const ALL={};
-for (const L of LAYERS){ layerByKey[L.key]=L; for (const s in L.data) ALL[s]={...L.data[s], layer:L.key}; }
+const MUSCLE_REGIONS=['Cou','Épaule','Dos','Poitrine','Abdomen','Bras','Avant-bras','Hanche & fessiers','Cuisse','Jambe'];
+let LAYERS=[]; const layerByKey={}; const ALL={};
 
 function jitterColor(hex, slug, amp=0.1){
   let h=0; for (const c of slug) h=(h*31+c.charCodeAt(0))&0xffff;
@@ -313,8 +276,8 @@ function jitterColor(hex, slug, amp=0.1){
   return new THREE.Color().setHSL(hsl.h,hsl.s,hsl.l);
 }
 function colorFor(slug, layerKey){
-  const e=ALL[slug];
-  const hex = (e&&e.col) ? e.col : layerKey==='skeleton' ? '#e7ddc7' : layerKey==='nerves' ? '#d7b3ab' : (REGION_COLOR[e.reg]||'#b03a2e');
+  const e=ALL[slug]; const L=layerByKey[layerKey];
+  const hex = (e&&e.col) ? e.col : layerKey==='muscles' ? (REGION_COLOR[e.reg]||'#b03a2e') : (L&&L.base) ? L.base : '#b03a2e';
   return jitterColor(hex, slug, layerKey==='skeleton'?0.05:0.1);
 }
 
@@ -324,6 +287,21 @@ const { OrbitControls } = await import('three/addons/controls/OrbitControls.js')
 const { RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js');
 const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
 const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
+
+/* ---- assemblage des calques (muscles+nerveux inline + systems.json) ---- */
+const sysd = await fetch('systems.json').then(r=>r.json()).catch(()=>({layers:[],data:{}}));
+const DEFS = {
+  muscles:{key:'muscles',label:'💪 Muscles',file:'muscles.glb',base:null,regions:MUSCLE_REGIONS,data:DATA_MUSCLES},
+  nerves:{key:'nerves',label:'🧠 Nerveux',file:'nerves.glb',base:'#d7b3ab',regions:['Encéphale','Œil & orbite'],data:DATA_NERVES}
+};
+for(const L of sysd.layers){ const data={}; for(const k in sysd.data) if(sysd.data[k].layer===L.key) data[k]=sysd.data[k];
+  DEFS[L.key]={key:L.key,label:L.label,file:L.file,base:L.base,regions:L.regions,data}; }
+const ORDER=['muscles','skeleton','nerves','cardio','respiratory','digestive','urinary','reproductive','endocrine','lymphatic','integumentary'];
+LAYERS = ORDER.filter(k=>DEFS[k]).map((k,i)=>({...DEFS[k], visible:i===0, loaded:false, group:null}));
+for(const L of LAYERS){ layerByKey[L.key]=L; for(const s in L.data) ALL[s]={...L.data[s], layer:L.key}; }
+const layersEl=document.getElementById('layers'); layersEl.innerHTML='';
+for(const L of LAYERS){ const b=document.createElement('button'); b.className='lyr'+(L.visible?' on':'');
+  b.dataset.layer=L.key; b.textContent=L.label; b.addEventListener('click',()=>onLayerClick(L,b)); layersEl.appendChild(b); }
 
 const app=document.getElementById('app');
 const scene=new THREE.Scene();
@@ -404,6 +382,7 @@ function buildLayerMeshes(L, root){
     const slug=(o.name||'').split('__')[0]; const e=ALL[slug]; if(!e) return;
     o.geometry.computeVertexNormals();
     o.material=makeMat(L.key, colorFor(slug,L.key));
+    o.userData.baseEmissive=o.material.emissive.clone();
     o.castShadow=!MOBILE; o.userData.slug=slug;
     (meshesBySlug[slug]=meshesBySlug[slug]||[]).push(o);
   });
@@ -431,18 +410,23 @@ async function ensureLayer(L){
 
 /* ============== interaction ============== */
 const raycaster=new THREE.Raycaster(); const pointer=new THREE.Vector2();
-let hoveredId=null, selectedId=null; const SEL_EMISSIVE=MOBILE?0.65:0.5; let xray=false;
-function setEmissive(slug,v){ (meshesBySlug[slug]||[]).forEach(m=>m.material.emissiveIntensity=v); }
-function applyXray(){
-  for(const slug in meshesBySlug){ const vis=layerByKey[ALL[slug].layer].visible;
-    for(const m of meshesBySlug[slug]){ const sel=slug===selectedId||slug===hoveredId;
-      m.material.opacity = xray&&vis ? (sel?1.0:0.18) : 1.0;
-      m.material.depthWrite = !(xray&&vis&&!sel); } }
-}
+let hoveredId=null, selectedId=null; let xray=false;
+const HL=new THREE.Color('#ffd27a');          // teinte de surbrillance
 function refresh(){
-  for(const slug in meshesBySlug) setEmissive(slug, slug===selectedId?SEL_EMISSIVE:(slug===hoveredId?0.28:0.0));
+  const focus = selectedId && layerByKey[ALL[selectedId].layer] && layerByKey[ALL[selectedId].layer].visible;
+  for(const slug in meshesBySlug){
+    const vis=layerByKey[ALL[slug].layer].visible;
+    const sel=slug===selectedId, hov=slug===hoveredId;
+    for(const m of meshesBySlug[slug]){
+      if(sel){ m.material.emissive.copy(HL); m.material.emissiveIntensity=0.95; }
+      else { m.material.emissive.copy(m.userData.baseEmissive); m.material.emissiveIntensity=hov?0.34:0.0; }
+      let op=1.0;
+      if(xray && vis) op=(sel||hov)?1.0:0.16;
+      else if(focus && vis) op=sel?1.0:(hov?0.95:0.42);   // focus : on atténue le reste
+      m.material.opacity=op; m.material.depthWrite = op>=0.99;
+    }
+  }
   if(outline) outline.selectedObjects = selectedId&&meshesBySlug[selectedId] ? meshesBySlug[selectedId] : [];
-  applyXray();
 }
 function pickAt(cx,cy){ pointer.x=(cx/innerWidth)*2-1; pointer.y=-(cy/innerHeight)*2+1;
   raycaster.setFromCamera(pointer,camera); const h=raycaster.intersectObjects(pickables,false);
@@ -501,21 +485,19 @@ let toastT=null; const toastEl=document.getElementById('toast');
 function showToast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); if(toastT)clearTimeout(toastT); }
 function hideToast(){ toastEl.classList.remove('show'); }
 
-/* calques */
-document.querySelectorAll('.lyr').forEach(btn=>{
-  btn.addEventListener('click',async ()=>{
-    const L=layerByKey[btn.dataset.layer]; const turningOn=!L.visible;
-    if(turningOn && !L.loaded){
-      btn.classList.add('loading'); showToast(`Chargement : ${L.label}…`);
-      try{ await ensureLayer(L); } catch{ btn.classList.remove('loading'); showToast('Échec du chargement.'); setTimeout(hideToast,1600); return; }
-      btn.classList.remove('loading'); hideToast();
-    }
-    L.visible=turningOn; if(L.group) L.group.visible=L.visible;
-    btn.classList.toggle('on',L.visible);
-    if(selectedId && !layerByKey[ALL[selectedId].layer].visible) select(null);
-    updatePickables(); refresh(); buildList(document.getElementById('search').value);
-  });
-});
+/* calques (boutons générés dynamiquement après le fetch systems.json) */
+async function onLayerClick(L, btn){
+  const turningOn=!L.visible;
+  if(turningOn && !L.loaded){
+    btn.classList.add('loading'); showToast(`Chargement : ${L.label}…`);
+    try{ await ensureLayer(L); } catch{ btn.classList.remove('loading'); showToast('Échec du chargement.'); setTimeout(hideToast,1600); return; }
+    btn.classList.remove('loading'); hideToast();
+  }
+  L.visible=turningOn; if(L.group) L.group.visible=L.visible;
+  btn.classList.toggle('on',L.visible);
+  if(selectedId && !layerByKey[ALL[selectedId].layer].visible) select(null);
+  updatePickables(); refresh(); buildList(document.getElementById('search').value);
+}
 
 /* contrôles */
 let autoRotate=false; const bRot=document.getElementById('btn-rotate');
