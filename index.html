@@ -413,16 +413,15 @@ const raycaster=new THREE.Raycaster(); const pointer=new THREE.Vector2();
 let hoveredId=null, selectedId=null; let xray=false;
 const HL=new THREE.Color('#ffd27a');          // teinte de surbrillance
 function refresh(){
-  const focus = selectedId && layerByKey[ALL[selectedId].layer] && layerByKey[ALL[selectedId].layer].visible;
   for(const slug in meshesBySlug){
     const vis=layerByKey[ALL[slug].layer].visible;
     const sel=slug===selectedId, hov=slug===hoveredId;
     for(const m of meshesBySlug[slug]){
+      // surbrillance : teinte vive sur la sélection, léger éclat au survol
       if(sel){ m.material.emissive.copy(HL); m.material.emissiveIntensity=0.95; }
       else { m.material.emissive.copy(m.userData.baseEmissive); m.material.emissiveIntensity=hov?0.34:0.0; }
-      let op=1.0;
-      if(xray && vis) op=(sel||hov)?1.0:0.16;
-      else if(focus && vis) op=sel?1.0:(hov?0.95:0.42);   // focus : on atténue le reste
+      // opacité : pleine par défaut ; n'est réduite QUE par le mode Transparence
+      const op = (xray && vis) ? ((sel||hov)?1.0:0.18) : 1.0;
       m.material.opacity=op; m.material.depthWrite = op>=0.99;
     }
   }
